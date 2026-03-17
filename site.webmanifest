@@ -2,13 +2,13 @@
   "name": "Pokemon Battle Helper",
   "short_name": "PKM BH",
   "description": "Quick Pokemon battle matchup helper.",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#100726",
   "theme_color": "#863bff",
   "icons": [
     {
-      "src": "/pkmbh.svg",
+      "src": "pkmbh.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
