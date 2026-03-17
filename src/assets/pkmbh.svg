@@ -1,0 +1,41 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Multi-type gradient -->
+    <linearGradient id="typeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F08030"/>   <!-- Fire -->
+      <stop offset="20%" stop-color="#6890F0"/>  <!-- Water -->
+      <stop offset="40%" stop-color="#78C850"/>  <!-- Grass -->
+      <stop offset="60%" stop-color="#F8D030"/>  <!-- Electric -->
+      <stop offset="80%" stop-color="#A890F0"/>  <!-- Psychic -->
+      <stop offset="100%" stop-color="#EE99AC"/> <!-- Fairy -->
+    </linearGradient>
+  </defs>
+
+  <!-- Outer circle -->
+  <circle cx="100" cy="100" r="90" fill="#ffffff" stroke="#222" stroke-width="6"/>
+
+  <!-- Top half -->
+  <path d="M10 100 A90 90 0 0 1 190 100 L10 100 Z" fill="#ef4444"/>
+
+  <!-- Bottom half -->
+  <path d="M10 100 A90 90 0 0 0 190 100 L10 100 Z" fill="#f8fafc"/>
+
+  <!-- Middle line -->
+  <line x1="10" y1="100" x2="190" y2="100" stroke="#222" stroke-width="6"/>
+
+  <!-- Center circle background -->
+  <circle cx="100" cy="100" r="36" fill="#ffffff" stroke="#222" stroke-width="6"/>
+
+  <!-- BH text -->
+  <text x="100" y="112"
+        text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="32"
+        font-weight="900"
+        fill="url(#typeGradient)"
+        stroke="#222"
+        stroke-width="1.5"
+        paint-order="stroke">
+    BH
+  </text>
+</svg>
