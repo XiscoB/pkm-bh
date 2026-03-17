@@ -29,6 +29,21 @@ type PokemonApiResponse = {
       } | null;
     };
   };
+  stats: {
+    base_stat: number;
+    stat: {
+      name: string;
+    };
+  }[];
+};
+
+export type PokemonBaseStats = {
+  hp: number;
+  attack: number;
+  defense: number;
+  specialAttack: number;
+  specialDefense: number;
+  speed: number;
 };
 
 type TypeApiResponse = {
@@ -336,6 +351,23 @@ function extractPokemonSpriteUrl(payload: PokemonApiResponse): string | null {
   );
 }
 
+function extractPokemonBaseStats(
+  payload: PokemonApiResponse,
+): PokemonBaseStats {
+  const statsMap = Object.fromEntries(
+    payload.stats.map((entry) => [entry.stat.name, entry.base_stat]),
+  );
+
+  return {
+    hp: statsMap.hp ?? 0,
+    attack: statsMap.attack ?? 0,
+    defense: statsMap.defense ?? 0,
+    specialAttack: statsMap["special-attack"] ?? 0,
+    specialDefense: statsMap["special-defense"] ?? 0,
+    speed: statsMap.speed ?? 0,
+  };
+}
+
 export async function fetchPokemonSpriteUrl(
   enemyName: string,
 ): Promise<string | null> {
@@ -357,4 +389,27 @@ export async function fetchPokemonSpriteUrl(
   const payload = await fetchPokemonPayload(normalizedName);
   await writeCachedValue(POKEMON_STORE, normalizedName, payload);
   return extractPokemonSpriteUrl(payload);
+}
+
+export async function fetchPokemonBaseStats(
+  enemyName: string,
+): Promise<PokemonBaseStats> {
+  const normalizedName = enemyName.trim().toLowerCase();
+
+  if (!normalizedName) {
+    throw new Error("Enter an enemy Pokemon name.");
+  }
+
+  const cachedPokemon = await readCachedValue<PokemonApiResponse>(
+    POKEMON_STORE,
+    normalizedName,
+  );
+
+  if (cachedPokemon) {
+    return extractPokemonBaseStats(cachedPokemon);
+  }
+
+  const payload = await fetchPokemonPayload(normalizedName);
+  await writeCachedValue(POKEMON_STORE, normalizedName, payload);
+  return extractPokemonBaseStats(payload);
 }

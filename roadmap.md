@@ -791,6 +791,122 @@ Ensure:
 - Focus on trust, clarity, and consistency
 - Avoid overengineering or feature creep
 
+## 🟣 Tier 14 — Defensive Completeness & Hidden Depth
+
+### Goal
+
+Enhance battle understanding by:
+
+- Completing defensive information (immunities)
+- Providing optional access to base stats for deeper insight
+
+All additions must remain subtle and not affect the main battle flow.
+
+---
+
+### Tasks
+
+#### 1. Display Immunities (NEW)
+
+- Extend type effectiveness display to include immunities (0× damage)
+
+- In Enemy Snapshot:
+  - Add a new line:
+
+    Immune:
+    - List types with 0× effectiveness
+
+- Behavior:
+  - Only show "Immune" section if at least one exists
+  - Keep format consistent with Weak / Resist
+
+- Example:
+
+  Weak:
+  Electric
+
+  Resist:
+  Fire • Water • Fighting
+
+  Immune:
+  Ground
+
+---
+
+#### 2. Base Stats (Hidden Detail)
+
+- Add interactive behavior to enemy sprite:
+  - Clicking the Pokémon image toggles base stats display
+
+---
+
+#### 3. Base Stats Display
+
+- Show a compact stat panel:
+
+  HP • Atk • Def • SpA • SpD • Spe
+
+- Example:
+
+  HP: 78  
+  Atk: 84  
+  Def: 78  
+  SpA: 109  
+  SpD: 85  
+  Spe: 100
+
+---
+
+#### 4. Stat Interpretation (IMPORTANT)
+
+- Add a minimal interpretation line:
+
+  Examples:
+  - "Balanced offensive Pokémon"
+  - "High Speed, special attacker"
+  - "Defensive / tanky profile"
+
+- Rules:
+  - Must be derived from stat distribution
+  - Keep it to ONE short sentence
+  - No deep competitive analysis
+
+---
+
+#### 5. Interaction Behavior
+
+- Click sprite → toggle stats panel
+- Click again → hide stats
+- Must work on mobile (tap)
+
+---
+
+### Output
+
+- Complete defensive view (including immunities)
+- Optional stat insight without clutter
+- Better understanding of:
+  - what threatens the enemy
+  - how the enemy is likely built
+
+---
+
+### Constraints
+
+- Do NOT clutter the main UI
+- Do NOT show stats by default
+- Do NOT add charts or graphs
+- Do NOT introduce heavy UI components
+- Keep stats display compact and fast
+
+---
+
+### Notes
+
+- Immunities complete the type system (0× cases)
+- Base stats add depth without changing core logic
+- This tier adds knowledge, not new mechanics
+
 # ⭐ Additional Feature
 
 ## Recent Enemies

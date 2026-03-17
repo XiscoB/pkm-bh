@@ -335,10 +335,44 @@ button:disabled {
   justify-content: center;
 }
 
+.enemy-sprite-button {
+  width: 74px;
+  height: 74px;
+  border: 1px solid #36557c;
+  border-radius: 0.45rem;
+  background: #142844;
+  padding: 0.2rem;
+}
+
+.enemy-sprite-button:focus-visible {
+  outline: 2px solid #f3cc67;
+  outline-offset: 2px;
+}
+
 .enemy-sprite {
   width: 64px;
   height: 64px;
   image-rendering: pixelated;
+}
+
+.enemy-stats-panel {
+  margin: 0 0 0.55rem;
+  border: 1px solid #2f4b70;
+  border-radius: 0.4rem;
+  background: #132640;
+  padding: 0.35rem 0.45rem;
+}
+
+.enemy-stats-row,
+.enemy-stats-summary {
+  margin: 0;
+  color: #c9ddfb;
+  font-size: 0.74rem;
+}
+
+.enemy-stats-summary {
+  margin-top: 0.2rem;
+  color: #b8cae3;
 }
 
 .battle-empty-state {

@@ -203,3 +203,13 @@ export function getWeaknesses(defendingTypes: PokemonType[]): Weakness[] {
 
   return weaknesses;
 }
+
+export function getImmunities(defendingTypes: PokemonType[]): PokemonType[] {
+  if (defendingTypes.length === 0) {
+    return [];
+  }
+
+  return TYPE_NAMES.filter((attackType) => {
+    return getAttackMultiplierAgainstTypes(attackType, defendingTypes) === 0;
+  });
+}

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   getAttackMultiplierAgainstTypes,
+  getImmunities,
   getWeaknesses,
   TYPE_NAMES,
   type PokemonType,
 } from "./battle/typeEffectiveness";
+import { getStatProfileSummary } from "./battle/statProfile";
 import {
   type TeamMatchupSafety,
   type TeamMatchupStrength,
@@ -23,9 +25,11 @@ import {
   getPokemonAutocompleteSuggestions,
 } from "./battle/pokemonAutocomplete";
 import {
+  fetchPokemonBaseStats,
   fetchPokemonCoverageTypes,
   fetchPokemonNameIndex,
   fetchPokemonSpriteUrl,
+  type PokemonBaseStats,
   fetchPokemonTypes,
 } from "./data/pokeapi";
 
@@ -470,6 +474,10 @@ function App() {
   >([]);
   const [coverageTypes, setCoverageTypes] = useState<PokemonType[]>([]);
   const [enemySpriteUrl, setEnemySpriteUrl] = useState<string | null>(null);
+  const [enemyBaseStats, setEnemyBaseStats] = useState<PokemonBaseStats | null>(
+    null,
+  );
+  const [isEnemyStatsOpen, setIsEnemyStatsOpen] = useState(false);
   const [teamEvaluations, setTeamEvaluations] = useState<
     AdvancedTeamEvaluation[]
   >([]);
@@ -503,6 +511,7 @@ function App() {
   }, []);
 
   const weaknesses = getWeaknesses(enemyTypes);
+  const immunities = getImmunities(enemyTypes);
   const enemyStrongAgainst = getStrongAgainstTypes(enemyTypes);
   const hasEnemySnapshotData =
     enemyTypes.length > 0 ||
@@ -655,21 +664,24 @@ function App() {
         })
         .filter((entry) => entry.pokemonName.length > 0);
 
-      const [types, coverage, teamData] = await Promise.all([
-        fetchPokemonTypes(currentEnemyName),
-        fetchPokemonCoverageTypes(currentEnemyName),
-        Promise.all(
-          parsedTeam.map(async (entry) => {
-            const pokemonTypes = await fetchPokemonTypes(entry.pokemonName);
+      const [types, coverage, teamData, spriteUrl, baseStats] =
+        await Promise.all([
+          fetchPokemonTypes(currentEnemyName),
+          fetchPokemonCoverageTypes(currentEnemyName),
+          Promise.all(
+            parsedTeam.map(async (entry) => {
+              const pokemonTypes = await fetchPokemonTypes(entry.pokemonName);
 
-            return {
-              pokemonName: entry.pokemonName,
-              pokemonTypes,
-              optionalMoveTypes: entry.optionalMoveTypes,
-            };
-          }),
-        ),
-      ]);
+              return {
+                pokemonName: entry.pokemonName,
+                pokemonTypes,
+                optionalMoveTypes: entry.optionalMoveTypes,
+              };
+            }),
+          ),
+          fetchPokemonSpriteUrl(currentEnemyName),
+          fetchPokemonBaseStats(currentEnemyName),
+        ]);
 
       const resolvedEnemyAttackTypes = resolveEnemyAttackTypes(
         types,
@@ -698,7 +710,6 @@ function App() {
         }),
       );
 
-      const spriteUrl = await fetchPokemonSpriteUrl(currentEnemyName);
       const nextTeamSpriteUrls = Object.fromEntries(spriteEntries);
 
       setEnemyTypes(types);
@@ -708,6 +719,8 @@ function App() {
         resolvedEnemyAttackTypes.mode === "known" ? enemyKnownMoveTypes : [],
       );
       setEnemySpriteUrl(spriteUrl);
+      setEnemyBaseStats(baseStats);
+      setIsEnemyStatsOpen(false);
       setTeamEvaluations(evaluations);
       setTeamTypeMap(
         Object.fromEntries(
@@ -724,6 +737,8 @@ function App() {
       setKnownEnemyCoverageTypes([]);
       setCoverageTypes([]);
       setEnemySpriteUrl(null);
+      setEnemyBaseStats(null);
+      setIsEnemyStatsOpen(false);
       setTeamEvaluations([]);
       setTeamTypeMap({});
       setTeamSpriteUrls({});
@@ -894,11 +909,33 @@ function App() {
 
             {enemySpriteUrl ? (
               <div className="enemy-sprite-wrap">
-                <img
-                  src={enemySpriteUrl}
-                  alt={`${formatPokemonName(enemyName)} sprite`}
-                  className="enemy-sprite"
-                />
+                <button
+                  type="button"
+                  className="enemy-sprite-button"
+                  onClick={() => setIsEnemyStatsOpen((current) => !current)}
+                  aria-expanded={isEnemyStatsOpen}
+                  aria-label="Toggle enemy base stats"
+                >
+                  <img
+                    src={enemySpriteUrl}
+                    alt={`${formatPokemonName(enemyName)} sprite`}
+                    className="enemy-sprite"
+                  />
+                </button>
+              </div>
+            ) : null}
+
+            {isEnemyStatsOpen && enemyBaseStats ? (
+              <div className="enemy-stats-panel">
+                <p className="enemy-stats-row">
+                  HP: {enemyBaseStats.hp} Atk: {enemyBaseStats.attack} Def:{" "}
+                  {enemyBaseStats.defense} SpA: {enemyBaseStats.specialAttack}{" "}
+                  SpD: {enemyBaseStats.specialDefense} Spe:{" "}
+                  {enemyBaseStats.speed}
+                </p>
+                <p className="enemy-stats-summary">
+                  {getStatProfileSummary(enemyBaseStats)}
+                </p>
               </div>
             ) : null}
 
@@ -969,6 +1006,19 @@ function App() {
                   </ul>
                 )}
               </article>
+
+              {immunities.length > 0 ? (
+                <article>
+                  <h3>Immune</h3>
+                  <ul className="chip-list">
+                    {immunities.map((type) => (
+                      <li key={type} className="chip">
+                        {type}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ) : null}
             </div>
           </section>
 

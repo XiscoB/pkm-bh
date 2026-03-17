@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getWeaknesses } from "./typeEffectiveness";
+import { getImmunities, getWeaknesses } from "./typeEffectiveness";
 
 describe("getWeaknesses", () => {
   it("returns weaknesses for a single type", () => {
@@ -24,5 +24,19 @@ describe("getWeaknesses", () => {
     const weaknessTypes = weaknesses.map((entry) => entry.type);
 
     expect(weaknessTypes).toEqual(["electric", "grass"]);
+  });
+});
+
+describe("getImmunities", () => {
+  it("returns immunities for a single type", () => {
+    expect(getImmunities(["ground"])).toEqual(["electric"]);
+  });
+
+  it("combines immunities for dual types", () => {
+    expect(getImmunities(["ground", "flying"])).toEqual(["electric", "ground"]);
+  });
+
+  it("returns an empty list when no immunities exist", () => {
+    expect(getImmunities(["fire"])).toEqual([]);
   });
 });
