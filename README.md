@@ -1,73 +1,186 @@
-# React + TypeScript + Vite
+# Pokemon Battle Helper
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Pokemon Battle Helper is a fast, local-first battle assistant built with React + Vite + TypeScript.
+It helps you decide the best switch against an enemy Pokemon by combining:
 
-Currently, two official plugins are available:
+- Enemy type weaknesses
+- Enemy offensive coverage pressure
+- Team offensive and defensive matchup labels
+- Danger score and best-switch recommendation
+- Optional move-type hints (TM-style coverage) for both your team and the enemy
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The project roadmap is complete through Tier 13.
 
-## React Compiler
+## Core Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Enemy snapshot with:
+  - Enemy types
+  - Weakness list with multipliers
+  - Strong-against type list
+  - Coverage types
+  - Enemy sprite
+- Team evaluation per Pokemon with:
+  - Strong / Neutral / Weak
+  - Safe / Risk
+  - Danger score
+  - Inline explanations (clickable labels)
+- Move coverage integration:
+  - Optional team move types
+  - Optional enemy move types
+  - STAB vs TM explanation clarity
+- Coverage mode switching:
+  - Known enemy moves mode when enemy move types are provided
+  - Assumed coverage mode otherwise
+- Best switch recommendation highlight
+- Team persistence in localStorage
+- Import / Export team JSON with clipboard actions
+- Fast local autocomplete for:
+  - Enemy Pokemon
+  - Team Pokemon
+  - Optional move-type inputs
+- IndexedDB + localStorage caching for faster repeated usage
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- React
+- Vite
+- TypeScript
+- PokeAPI
+- IndexedDB (Pokemon/type cache)
+- localStorage (team and Pokemon name index)
+- Vitest (battle logic tests)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Requirements
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Node.js 20+
+- npm
+
+### Install
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Run in development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
 ```
+
+### Build
+
+```bash
+npm run build
+```
+
+### Preview production build
+
+```bash
+npm run preview
+```
+
+### Lint
+
+```bash
+npm run lint
+```
+
+### Test
+
+```bash
+npm run test
+```
+
+### Deploy (GitHub Pages)
+
+```bash
+npm run deploy
+```
+
+## Screenshots
+
+### Initial State
+
+![Initial state](screenshot-initial.png)
+
+### Full Analysis with Team
+
+![Full analysis](screenshot-full.png)
+
+## Team Import / Export Format
+
+Current team transfer payload:
+
+```json
+{
+  "team": [
+    {
+      "name": "gyarados",
+      "moveTypes": ["ice", "ground"]
+    },
+    {
+      "name": "blastoise",
+      "moveTypes": []
+    }
+  ]
+}
+```
+
+Notes:
+
+- Names and types are normalized to lowercase.
+- Invalid move types are ignored.
+- Legacy array-only team imports are still supported.
+
+## Architecture
+
+Layering follows the roadmap constraints:
+
+- UI: React components in src/App.tsx
+- Battle engine: pure TypeScript logic in src/battle
+- Data layer: PokeAPI + cache in src/data/pokeapi.ts
+
+Business rules are kept out of the UI and tested in battle engine tests.
+
+## Project Structure
+
+```text
+src/
+  App.tsx
+  battle/
+    advancedAnalysis.ts
+    coverage.ts
+    pokemonAutocomplete.ts
+    teamEvaluation.ts
+    teamTransfer.ts
+    typeEffectiveness.ts
+  data/
+    pokeapi.ts
+```
+
+## Testing Scope
+
+The test suite is focused on pure battle logic functions (no UI tests), including:
+
+- Type effectiveness
+- Enemy coverage extraction/filtering
+- Team evaluation
+- Advanced analysis and danger scoring
+- Team transfer parsing/validation
+- Autocomplete filtering/ranking
+
+## Out of Scope
+
+This is intentionally not a competitive simulator. It does not include:
+
+- Abilities
+- IV/EV stats
+- Damage calculations
+- Full move learnset simulation
+- Backend services or auth
+
+## Data Source
+
+- PokeAPI: https://pokeapi.co/

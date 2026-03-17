@@ -879,7 +879,7 @@ function App() {
       {showBattleEmptyState ? (
         <section className="battle-empty-state">
           <img
-            src="/pkmbh.svg"
+            src={`${import.meta.env.BASE_URL}pkmbh.svg`}
             alt="Pokemon Battle Helper"
             className="battle-empty-state-image"
           />

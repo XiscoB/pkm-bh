@@ -12,12 +12,11 @@ body {
   margin: 0;
   min-height: 100dvh;
   background: radial-gradient(circle at 20% 10%, #20395e 0%, #0f1b2d 55%);
-  overflow: hidden;
 }
 
 #root {
   width: min(1080px, 100vw);
-  height: 100dvh;
+  min-height: 100dvh;
   margin: 0 auto;
   padding: 0.75rem;
 }
@@ -26,7 +25,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  height: 100%;
 }
 
 input {
@@ -411,7 +409,7 @@ button:disabled {
 }
 
 .transfer-panel {
-  margin-top: auto;
+  margin-top: 0;
 }
 
 .team-list {
@@ -597,6 +595,11 @@ button:disabled {
     padding: 0.55rem;
   }
 
+  button {
+    height: 2rem;
+    font-size: 0.84rem;
+  }
+
   .snapshot-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.35rem;
@@ -619,13 +622,43 @@ button:disabled {
     max-height: 10.5rem;
   }
 
+  .primary-analyze-button {
+    height: 2.45rem;
+    font-size: 0.92rem;
+  }
+
+  .secondary-button {
+    height: 2rem;
+    padding: 0 0.45rem;
+    font-size: 0.76rem;
+  }
+
   .status {
-    min-width: 4.25rem;
-    font-size: 0.72rem;
+    min-width: 0;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.66rem;
   }
 
   .team-row-grid {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    row-gap: 0.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.22rem;
+  }
+
+  .team-row-grid .pokemon-identity {
+    width: 100%;
+  }
+
+  .team-row-grid .status,
+  .team-row-grid .tm-indicator-button {
+    width: auto;
+  }
+
+  .tm-indicator-button {
+    min-width: 0;
+    height: 1.55rem;
+    padding: 0 0.35rem;
+    font-size: 0.66rem;
   }
 }
