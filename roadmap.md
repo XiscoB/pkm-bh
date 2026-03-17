@@ -907,6 +907,160 @@ All additions must remain subtle and not affect the main battle flow.
 - Base stats add depth without changing core logic
 - This tier adds knowledge, not new mechanics
 
+## 🟣 Tier 15 — Coverage Effectiveness Clarity
+
+### Goal
+
+Improve battle decision-making by clearly showing how each Pokémon’s available types perform against the enemy.
+
+This tier introduces visibility into:
+
+- what is effective
+- what is neutral
+- what is resisted
+- what is completely ineffective (immune)
+
+---
+
+### Tasks
+
+#### 1. Coverage Effectiveness Breakdown
+
+For each Pokémon in Team Evaluation:
+
+- Analyze all available types:
+  - STAB types
+  - moveTypes (TM)
+
+- Compute effectiveness vs enemy types
+
+---
+
+#### 2. Categorize effectiveness (STRICT)
+
+Each type MUST be classified as:
+
+- Strong → multiplier > 1 (2× / 4×)
+- Neutral → multiplier = 1×
+- Resisted → multiplier < 1 (0.5× / 0.25×)
+- Immune → multiplier = 0×
+
+---
+
+#### 3. Display breakdown (CRITICAL)
+
+Display coverage breakdown per Pokémon:
+
+Format:
+
+Strong:
+
+- (types)
+
+Neutral:
+
+- (types)
+
+Resisted:
+
+- (types)
+
+Immune:
+
+- (types)
+
+---
+
+#### 4. UI Behavior (IMPORTANT)
+
+- Do NOT show this by default
+- Show only when:
+  - user clicks a label (Strong / Weak / etc.)
+    OR
+  - row is expanded
+
+- Keep layout compact and readable
+
+---
+
+#### 5. TM distinction
+
+- Mark moveTypes with "(TM)"
+
+Example:
+
+Neutral:
+Ghost • Fighting (TM)
+
+Resisted:
+Fire
+
+---
+
+#### 6. Explanation integration
+
+When clicking labels:
+
+- Include coverage insight
+
+Examples:
+
+Strong:
+"Has effective coverage: Ice (TM) hits for super effective damage"
+
+Weak:
+"No strong coverage; main types are resisted"
+
+Neutral:
+"Only neutral damage available; no advantage"
+
+Resisted:
+"Most available types are resisted by the enemy"
+
+Immune:
+"Some moves have no effect against this enemy"
+
+---
+
+#### 7. Optional summary hint
+
+If no Strong types exist:
+
+- Show subtle hint:
+
+"No super effective moves available"
+
+---
+
+### Output
+
+- Clear understanding of:
+  - what works
+  - what doesn’t
+  - what is ineffective
+- Better decision-making during battles
+
+---
+
+### Constraints
+
+- Do NOT add damage calculations
+- Do NOT simulate full movesets
+- Do NOT clutter UI
+- Keep everything fast and minimal
+- Maintain current visual style (chips/badges)
+
+---
+
+### Notes
+
+- Neutral = normal damage (1×)
+- Resisted = reduced damage (<1×)
+- Immune = no damage (0×)
+
+- Avoid ambiguous terms like:
+  - "not effective"
+
 # ⭐ Additional Feature
 
 ## Recent Enemies

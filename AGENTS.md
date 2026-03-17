@@ -24,7 +24,7 @@ Agents operate by:
 
 # 🧭 Current Tier
 
-CURRENT_TIER = Tier 14
+CURRENT_TIER = Tier 15
 
 Agents MUST:
 

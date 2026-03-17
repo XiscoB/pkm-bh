@@ -20,6 +20,21 @@ export type AdvancedTeamEvaluation = {
   effectiveAttackType: PokemonType | null;
 };
 
+export type CoverageTypeSource = "stab" | "move";
+
+export type CoverageEffectivenessEntry = {
+  type: PokemonType;
+  source: CoverageTypeSource;
+  multiplier: number;
+};
+
+export type CoverageEffectivenessBreakdown = {
+  strong: CoverageEffectivenessEntry[];
+  neutral: CoverageEffectivenessEntry[];
+  resisted: CoverageEffectivenessEntry[];
+  immune: CoverageEffectivenessEntry[];
+};
+
 export type EnemyCoverageMode = "assumed" | "known";
 
 export function resolveEnemyAttackTypes(
@@ -144,6 +159,18 @@ function getWorstDefensiveMultiplier(
   }, 0);
 }
 
+function sortCoverageByMultiplierThenType(
+  entries: CoverageEffectivenessEntry[],
+): CoverageEffectivenessEntry[] {
+  return entries.sort((left, right) => {
+    if (right.multiplier !== left.multiplier) {
+      return right.multiplier - left.multiplier;
+    }
+
+    return left.type.localeCompare(right.type);
+  });
+}
+
 export function parseOptionalMoveTypesInput(input: string): PokemonType[] {
   const optionalMoveTypes = input
     .split(",")
@@ -151,6 +178,47 @@ export function parseOptionalMoveTypesInput(input: string): PokemonType[] {
     .filter(isPokemonType);
 
   return [...new Set(optionalMoveTypes)];
+}
+
+export function getCoverageEffectivenessBreakdown(
+  teamPokemonTypes: PokemonType[],
+  optionalMoveTypes: PokemonType[],
+  enemyTypes: PokemonType[],
+): CoverageEffectivenessBreakdown {
+  const attackTypeMap = new Map<PokemonType, CoverageTypeSource>();
+
+  for (const stabType of teamPokemonTypes) {
+    attackTypeMap.set(stabType, "stab");
+  }
+
+  for (const moveType of optionalMoveTypes) {
+    if (!attackTypeMap.has(moveType)) {
+      attackTypeMap.set(moveType, "move");
+    }
+  }
+
+  const entries: CoverageEffectivenessEntry[] = [
+    ...attackTypeMap.entries(),
+  ].map(([type, source]) => ({
+    type,
+    source,
+    multiplier: getAttackMultiplierAgainstTypes(type, enemyTypes),
+  }));
+
+  return {
+    strong: sortCoverageByMultiplierThenType(
+      entries.filter((entry) => entry.multiplier > 1),
+    ),
+    neutral: sortCoverageByMultiplierThenType(
+      entries.filter((entry) => entry.multiplier === 1),
+    ),
+    resisted: sortCoverageByMultiplierThenType(
+      entries.filter((entry) => entry.multiplier > 0 && entry.multiplier < 1),
+    ),
+    immune: sortCoverageByMultiplierThenType(
+      entries.filter((entry) => entry.multiplier === 0),
+    ),
+  };
 }
 
 export function getPokemonAttackTypes(

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateDangerScore,
   evaluateTeamPokemonAdvanced,
+  getCoverageEffectivenessBreakdown,
   getBestSwitchRecommendation,
   parseOptionalMoveTypesInput,
   resolveEnemyAttackTypes,
@@ -168,6 +169,38 @@ describe("resolveEnemyAttackTypes", () => {
     ).toEqual({
       mode: "assumed",
       attackTypes: ["electric", "rock"],
+    });
+  });
+});
+
+describe("getCoverageEffectivenessBreakdown", () => {
+  it("classifies available types into strong, neutral, resisted, and immune", () => {
+    expect(
+      getCoverageEffectivenessBreakdown(
+        ["electric", "flying"],
+        ["normal", "fire"],
+        ["ghost", "water"],
+      ),
+    ).toEqual({
+      strong: [{ type: "electric", source: "stab", multiplier: 2 }],
+      neutral: [{ type: "flying", source: "stab", multiplier: 1 }],
+      resisted: [{ type: "fire", source: "move", multiplier: 0.5 }],
+      immune: [{ type: "normal", source: "move", multiplier: 0 }],
+    });
+  });
+
+  it("marks duplicate type from STAB + moveTypes as STAB and keeps immune entries", () => {
+    expect(
+      getCoverageEffectivenessBreakdown(
+        ["normal"],
+        ["normal", "dark"],
+        ["ghost"],
+      ),
+    ).toEqual({
+      strong: [{ type: "dark", source: "move", multiplier: 2 }],
+      neutral: [],
+      resisted: [],
+      immune: [{ type: "normal", source: "stab", multiplier: 0 }],
     });
   });
 });

@@ -578,6 +578,26 @@ button:disabled {
   font-size: 0.75rem;
 }
 
+.coverage-breakdown {
+  margin-top: 0.3rem;
+  border: 1px solid #2f4b70;
+  border-radius: 0.4rem;
+  background: #132640;
+  padding: 0.28rem 0.4rem;
+}
+
+.coverage-breakdown-row {
+  margin: 0.15rem 0;
+  color: #c9ddfb;
+  font-size: 0.73rem;
+}
+
+.coverage-hint {
+  margin: 0.24rem 0 0;
+  color: #9fb3d2;
+  font-size: 0.71rem;
+}
+
 .status-strong {
   color: #c8ffd9;
   background: #124028;

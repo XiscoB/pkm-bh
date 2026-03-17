@@ -14,10 +14,12 @@ import {
 import { exportTeamJson, importTeamJson } from "./battle/teamTransfer";
 import {
   evaluateTeamPokemonAdvanced,
+  getCoverageEffectivenessBreakdown,
   getBestSwitchRecommendation,
   parseOptionalMoveTypesInput,
   resolveEnemyAttackTypes,
   type AdvancedTeamEvaluation,
+  type CoverageEffectivenessEntry,
   type EnemyCoverageMode,
 } from "./battle/advancedAnalysis";
 import {
@@ -322,6 +324,52 @@ function formatStrengthLabel(evaluation: AdvancedTeamEvaluation): string {
   return evaluation.strength;
 }
 
+function formatCoverageEntryLabel(entry: CoverageEffectivenessEntry): string {
+  const baseLabel = formatPokemonName(entry.type);
+
+  if (entry.source === "move") {
+    return `${baseLabel} (TM)`;
+  }
+
+  return baseLabel;
+}
+
+function getCoverageInsightForStrengthLabel(
+  strength: TeamMatchupStrength,
+  strongCount: number,
+  neutralCount: number,
+  resistedCount: number,
+  immuneCount: number,
+): string {
+  if (strength === "Strong") {
+    return strongCount > 0
+      ? "Has effective coverage available against this enemy."
+      : "No super effective moves available.";
+  }
+
+  if (strength === "Weak") {
+    if (strongCount > 0) {
+      return "Has some effective coverage, but defensive pressure is high.";
+    }
+
+    if (resistedCount > 0 || immuneCount > 0) {
+      return "No strong coverage; available types are resisted or ineffective.";
+    }
+
+    return "No strong coverage available.";
+  }
+
+  if (strongCount === 0 && neutralCount > 0) {
+    return "Only neutral damage available; no offensive advantage.";
+  }
+
+  if (immuneCount > 0) {
+    return "Some available types have no effect against this enemy.";
+  }
+
+  return "No clear offensive advantage in this matchup.";
+}
+
 type PokemonAutocompleteInputProps = {
   value: string;
   onValueChange: (value: string) => void;
@@ -484,6 +532,9 @@ function App() {
   const [teamTypeMap, setTeamTypeMap] = useState<Record<string, PokemonType[]>>(
     {},
   );
+  const [teamMoveTypeMap, setTeamMoveTypeMap] = useState<
+    Record<string, PokemonType[]>
+  >({});
   const [teamSpriteUrls, setTeamSpriteUrls] = useState<
     Record<string, string | null>
   >({});
@@ -727,6 +778,11 @@ function App() {
           teamData.map((entry) => [entry.pokemonName, entry.pokemonTypes]),
         ),
       );
+      setTeamMoveTypeMap(
+        Object.fromEntries(
+          teamData.map((entry) => [entry.pokemonName, entry.optionalMoveTypes]),
+        ),
+      );
       setTeamSpriteUrls(nextTeamSpriteUrls);
       setBestSwitch(getBestSwitchRecommendation(evaluations));
     } catch (error) {
@@ -741,6 +797,7 @@ function App() {
       setIsEnemyStatsOpen(false);
       setTeamEvaluations([]);
       setTeamTypeMap({});
+      setTeamMoveTypeMap({});
       setTeamSpriteUrls({});
       setBestSwitch(null);
       setErrorMessage(message);
@@ -1053,147 +1110,221 @@ function App() {
                   </p>
                 ) : null}
                 <ul className="team-list">
-                  {teamEvaluations.map((entry) => (
-                    <li
-                      key={entry.pokemon}
-                      className={
-                        bestSwitch?.pokemon === entry.pokemon
-                          ? "team-row team-row-best"
-                          : "team-row"
-                      }
-                    >
-                      <div className="team-row-grid">
-                        <span className="pokemon-identity">
-                          {teamSpriteUrls[entry.pokemon] ? (
-                            <img
-                              src={teamSpriteUrls[entry.pokemon] ?? ""}
-                              alt={`${formatPokemonName(entry.pokemon)} sprite`}
-                              className="team-sprite"
-                            />
-                          ) : null}
-                          <span className="pokemon-name">
-                            {formatPokemonName(entry.pokemon)}
+                  {teamEvaluations.map((entry) => {
+                    const teamPokemonTypes = teamTypeMap[entry.pokemon] ?? [];
+                    const optionalMoveTypes =
+                      teamMoveTypeMap[entry.pokemon] ?? [];
+                    const coverageBreakdown = getCoverageEffectivenessBreakdown(
+                      teamPokemonTypes,
+                      optionalMoveTypes,
+                      enemyTypes,
+                    );
+                    const hasActiveExplanation =
+                      activeExplanationKey === `${entry.pokemon}:strength` ||
+                      activeExplanationKey === `${entry.pokemon}:safety` ||
+                      activeExplanationKey === `${entry.pokemon}:danger`;
+
+                    return (
+                      <li
+                        key={entry.pokemon}
+                        className={
+                          bestSwitch?.pokemon === entry.pokemon
+                            ? "team-row team-row-best"
+                            : "team-row"
+                        }
+                      >
+                        <div className="team-row-grid">
+                          <span className="pokemon-identity">
+                            {teamSpriteUrls[entry.pokemon] ? (
+                              <img
+                                src={teamSpriteUrls[entry.pokemon] ?? ""}
+                                alt={`${formatPokemonName(entry.pokemon)} sprite`}
+                                className="team-sprite"
+                              />
+                            ) : null}
+                            <span className="pokemon-name">
+                              {formatPokemonName(entry.pokemon)}
+                            </span>
                           </span>
-                        </span>
-                        <button
-                          type="button"
-                          className={`${strengthClassName(entry.strength)} status-button ${
-                            activeExplanationKey === `${entry.pokemon}:strength`
-                              ? "status-button-active"
-                              : ""
-                          }`}
-                          onClick={() => {
-                            const key = `${entry.pokemon}:strength`;
-                            setActiveExplanationKey((current) =>
-                              current === key ? null : key,
-                            );
-                          }}
-                          aria-expanded={
-                            activeExplanationKey === `${entry.pokemon}:strength`
-                          }
-                        >
-                          {formatStrengthLabel(entry)}
-                        </button>
-                        {entry.strength === "Strong" &&
-                        entry.strengthSource === "move" ? (
                           <button
                             type="button"
-                            className={`tm-indicator-button ${
-                              activeTmExplanationPokemon === entry.pokemon
-                                ? "tm-indicator-button-active"
+                            className={`${strengthClassName(entry.strength)} status-button ${
+                              activeExplanationKey ===
+                              `${entry.pokemon}:strength`
+                                ? "status-button-active"
                                 : ""
                             }`}
                             onClick={() => {
-                              setActiveTmExplanationPokemon((current) =>
-                                current === entry.pokemon
-                                  ? null
-                                  : entry.pokemon,
+                              const key = `${entry.pokemon}:strength`;
+                              setActiveExplanationKey((current) =>
+                                current === key ? null : key,
                               );
                             }}
                             aria-expanded={
-                              activeTmExplanationPokemon === entry.pokemon
+                              activeExplanationKey ===
+                              `${entry.pokemon}:strength`
                             }
                           >
-                            (TM)
+                            {formatStrengthLabel(entry)}
                           </button>
+                          {entry.strength === "Strong" &&
+                          entry.strengthSource === "move" ? (
+                            <button
+                              type="button"
+                              className={`tm-indicator-button ${
+                                activeTmExplanationPokemon === entry.pokemon
+                                  ? "tm-indicator-button-active"
+                                  : ""
+                              }`}
+                              onClick={() => {
+                                setActiveTmExplanationPokemon((current) =>
+                                  current === entry.pokemon
+                                    ? null
+                                    : entry.pokemon,
+                                );
+                              }}
+                              aria-expanded={
+                                activeTmExplanationPokemon === entry.pokemon
+                              }
+                            >
+                              (TM)
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            className={`${safetyClassName(entry.safety)} status-button ${
+                              activeExplanationKey === `${entry.pokemon}:safety`
+                                ? "status-button-active"
+                                : ""
+                            }`}
+                            onClick={() => {
+                              const key = `${entry.pokemon}:safety`;
+                              setActiveExplanationKey((current) =>
+                                current === key ? null : key,
+                              );
+                            }}
+                            aria-expanded={
+                              activeExplanationKey === `${entry.pokemon}:safety`
+                            }
+                          >
+                            {entry.safety}
+                          </button>
+                          <button
+                            type="button"
+                            className={`status status-danger status-button ${
+                              activeExplanationKey === `${entry.pokemon}:danger`
+                                ? "status-button-active"
+                                : ""
+                            }`}
+                            onClick={() => {
+                              const key = `${entry.pokemon}:danger`;
+                              setActiveExplanationKey((current) =>
+                                current === key ? null : key,
+                              );
+                            }}
+                            aria-expanded={
+                              activeExplanationKey === `${entry.pokemon}:danger`
+                            }
+                          >
+                            Danger {entry.dangerScore}
+                          </button>
+                        </div>
+                        {activeExplanationKey ===
+                        `${entry.pokemon}:strength` ? (
+                          <p className="status-explanation">
+                            {getStrengthExplanation(
+                              entry,
+                              teamPokemonTypes,
+                              enemyTypes,
+                            )}{" "}
+                            {getCoverageInsightForStrengthLabel(
+                              entry.strength,
+                              coverageBreakdown.strong.length,
+                              coverageBreakdown.neutral.length,
+                              coverageBreakdown.resisted.length,
+                              coverageBreakdown.immune.length,
+                            )}
+                          </p>
                         ) : null}
-                        <button
-                          type="button"
-                          className={`${safetyClassName(entry.safety)} status-button ${
-                            activeExplanationKey === `${entry.pokemon}:safety`
-                              ? "status-button-active"
-                              : ""
-                          }`}
-                          onClick={() => {
-                            const key = `${entry.pokemon}:safety`;
-                            setActiveExplanationKey((current) =>
-                              current === key ? null : key,
-                            );
-                          }}
-                          aria-expanded={
-                            activeExplanationKey === `${entry.pokemon}:safety`
-                          }
-                        >
-                          {entry.safety}
-                        </button>
-                        <button
-                          type="button"
-                          className={`status status-danger status-button ${
-                            activeExplanationKey === `${entry.pokemon}:danger`
-                              ? "status-button-active"
-                              : ""
-                          }`}
-                          onClick={() => {
-                            const key = `${entry.pokemon}:danger`;
-                            setActiveExplanationKey((current) =>
-                              current === key ? null : key,
-                            );
-                          }}
-                          aria-expanded={
-                            activeExplanationKey === `${entry.pokemon}:danger`
-                          }
-                        >
-                          Danger {entry.dangerScore}
-                        </button>
-                      </div>
-                      {activeExplanationKey === `${entry.pokemon}:strength` ? (
-                        <p className="status-explanation">
-                          {getStrengthExplanation(
-                            entry,
-                            teamTypeMap[entry.pokemon] ?? [],
-                            enemyTypes,
-                          )}
-                        </p>
-                      ) : null}
-                      {activeExplanationKey === `${entry.pokemon}:safety` ? (
-                        <p className="status-explanation">
-                          {getSafetyExplanation(
-                            entry.safety,
-                            teamTypeMap[entry.pokemon] ?? [],
-                            coverageTypes,
-                            enemyTypes,
-                            enemyCoverageMode,
-                          )}
-                        </p>
-                      ) : null}
-                      {activeExplanationKey === `${entry.pokemon}:danger` ? (
-                        <p className="status-explanation">
-                          {getDangerExplanation(
-                            entry.dangerScore,
-                            teamTypeMap[entry.pokemon] ?? [],
-                            coverageTypes,
-                            enemyTypes,
-                            enemyCoverageMode,
-                          )}
-                        </p>
-                      ) : null}
-                      {activeTmExplanationPokemon === entry.pokemon ? (
-                        <p className="status-explanation">
-                          TM: Coverage added via moves, not STAB.
-                        </p>
-                      ) : null}
-                    </li>
-                  ))}
+                        {activeExplanationKey === `${entry.pokemon}:safety` ? (
+                          <p className="status-explanation">
+                            {getSafetyExplanation(
+                              entry.safety,
+                              teamPokemonTypes,
+                              coverageTypes,
+                              enemyTypes,
+                              enemyCoverageMode,
+                            )}
+                          </p>
+                        ) : null}
+                        {activeExplanationKey === `${entry.pokemon}:danger` ? (
+                          <p className="status-explanation">
+                            {getDangerExplanation(
+                              entry.dangerScore,
+                              teamPokemonTypes,
+                              coverageTypes,
+                              enemyTypes,
+                              enemyCoverageMode,
+                            )}
+                          </p>
+                        ) : null}
+                        {hasActiveExplanation ? (
+                          <div className="coverage-breakdown">
+                            <p className="coverage-breakdown-row">
+                              <strong>Strong:</strong>{" "}
+                              {coverageBreakdown.strong.length > 0
+                                ? coverageBreakdown.strong
+                                    .map((coverageEntry) =>
+                                      formatCoverageEntryLabel(coverageEntry),
+                                    )
+                                    .join(" • ")
+                                : "None"}
+                            </p>
+                            <p className="coverage-breakdown-row">
+                              <strong>Neutral:</strong>{" "}
+                              {coverageBreakdown.neutral.length > 0
+                                ? coverageBreakdown.neutral
+                                    .map((coverageEntry) =>
+                                      formatCoverageEntryLabel(coverageEntry),
+                                    )
+                                    .join(" • ")
+                                : "None"}
+                            </p>
+                            <p className="coverage-breakdown-row">
+                              <strong>Resisted:</strong>{" "}
+                              {coverageBreakdown.resisted.length > 0
+                                ? coverageBreakdown.resisted
+                                    .map((coverageEntry) =>
+                                      formatCoverageEntryLabel(coverageEntry),
+                                    )
+                                    .join(" • ")
+                                : "None"}
+                            </p>
+                            <p className="coverage-breakdown-row">
+                              <strong>Immune:</strong>{" "}
+                              {coverageBreakdown.immune.length > 0
+                                ? coverageBreakdown.immune
+                                    .map((coverageEntry) =>
+                                      formatCoverageEntryLabel(coverageEntry),
+                                    )
+                                    .join(" • ")
+                                : "None"}
+                            </p>
+                            {coverageBreakdown.strong.length === 0 ? (
+                              <p className="coverage-hint">
+                                No super effective moves available.
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        {activeTmExplanationPokemon === entry.pokemon ? (
+                          <p className="status-explanation">
+                            TM: Coverage added via moves, not STAB.
+                          </p>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
               </>
             )}
