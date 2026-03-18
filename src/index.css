@@ -810,3 +810,13 @@ button:disabled {
     font-size: 0.66rem;
   }
 }
+
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 760px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+}
