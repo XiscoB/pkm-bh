@@ -104,7 +104,7 @@ export function getPokemonAutocompleteSuggestions(
   dataset: string[],
   limit = 8,
 ): string[] {
-  const query = queryValue.trim().toLowerCase();
+  const query = queryValue.trim().toLowerCase().replace(/\s+/g, "-");
 
   if (query.length === 0) {
     return [];

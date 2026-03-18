@@ -46,6 +46,16 @@ describe("getPokemonAutocompleteSuggestions", () => {
     expect(suggestions).toEqual(["charmeleon", "charizard", "charizard-galar"]);
   });
 
+  it("matches hyphenated names when query uses spaces", () => {
+    const suggestions = getPokemonAutocompleteSuggestions(
+      "iron val",
+      ["iron-hands", "iron-valiant", "flutter-mane"],
+      8,
+    );
+
+    expect(suggestions).toEqual(["iron-valiant"]);
+  });
+
   it("returns empty suggestions for empty query", () => {
     expect(getPokemonAutocompleteSuggestions("", ["pikachu"])).toEqual([]);
   });
