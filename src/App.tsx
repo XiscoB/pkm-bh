@@ -36,6 +36,8 @@ import {
 } from "./data/pokeapi";
 
 const TEAM_STORAGE_KEY = "pkm-bh-team";
+const ENEMY_HISTORY_STORAGE_KEY = "pkm-bh-recent-enemies";
+const MAX_RECENT_ENEMIES = 10;
 
 type SavedTeamState = {
   teamSlots: string[];
@@ -99,6 +101,33 @@ function loadSavedTeamState(): SavedTeamState {
     return { teamSlots, teamMoveTypeInputs };
   } catch {
     return { teamSlots: [""], teamMoveTypeInputs: [""] };
+  }
+}
+
+function loadSavedRecentEnemies(): string[] {
+  try {
+    const raw = localStorage.getItem(ENEMY_HISTORY_STORAGE_KEY);
+
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return [
+      ...new Set(
+        parsed
+          .map((value) => (typeof value === "string" ? value : ""))
+          .map((name) => name.trim().toLowerCase())
+          .filter((name) => name.length > 0),
+      ),
+    ].slice(0, MAX_RECENT_ENEMIES);
+  } catch {
+    return [];
   }
 }
 
@@ -504,8 +533,12 @@ function hasNonEmptyTeam(team: string[]): boolean {
 
 function App() {
   const initialSavedTeamState = useMemo(() => loadSavedTeamState(), []);
+  const initialRecentEnemies = useMemo(() => loadSavedRecentEnemies(), []);
   const [enemyName, setEnemyName] = useState("");
   const [enemyMoveTypeInput, setEnemyMoveTypeInput] = useState("");
+  const [recentEnemyNames, setRecentEnemyNames] =
+    useState<string[]>(initialRecentEnemies);
+  const [isRecentEnemiesOpen, setIsRecentEnemiesOpen] = useState(false);
   const [pokemonNameIndex, setPokemonNameIndex] = useState<string[]>([]);
   const [isTeamEditorOpen, setIsTeamEditorOpen] = useState(false);
   const [teamSlots, setTeamSlots] = useState<string[]>(
@@ -598,6 +631,28 @@ function App() {
       }),
     );
   }, [teamSlots, teamMoveTypeInputs]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      ENEMY_HISTORY_STORAGE_KEY,
+      JSON.stringify(recentEnemyNames),
+    );
+  }, [recentEnemyNames]);
+
+  const rememberRecentEnemy = (name: string) => {
+    setRecentEnemyNames((current) => {
+      const normalizedName = name.trim().toLowerCase();
+
+      if (!normalizedName) {
+        return current;
+      }
+
+      return [
+        normalizedName,
+        ...current.filter((entry) => entry !== normalizedName),
+      ].slice(0, MAX_RECENT_ENEMIES);
+    });
+  };
 
   const updateTeamSlot = (index: number, value: string) => {
     setTeamSlots((current) =>
@@ -785,6 +840,7 @@ function App() {
       );
       setTeamSpriteUrls(nextTeamSpriteUrls);
       setBestSwitch(getBestSwitchRecommendation(evaluations));
+      rememberRecentEnemy(currentEnemyName);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Something went wrong.";
@@ -824,43 +880,124 @@ function App() {
     maybeAutoAnalyze(normalizedSuggestion, teamSlots);
   };
 
+  const handleRecentEnemySelect = (recentEnemy: string) => {
+    const normalizedEnemy = normalizePokemonNameInput(recentEnemy);
+    setEnemyName(normalizedEnemy);
+    setIsRecentEnemiesOpen(false);
+    maybeAutoAnalyze(normalizedEnemy, teamSlots);
+  };
+
   return (
     <main className="app-shell">
       <header className="panel control-panel">
         <h1>Pokemon Battle Helper</h1>
 
         <div className="form-row">
-          <label htmlFor="enemy-name">Enemy Pokemon</label>
-          <PokemonAutocompleteInput
-            id="enemy-name"
-            value={enemyName}
-            suggestionDataset={autocompleteDataset}
-            onValueChange={(value) =>
-              setEnemyName(normalizePokemonNameInput(value))
-            }
-            onSuggestionSelect={handleEnemySuggestionSelect}
-            onEnterPressed={(nextEnemyName) => {
-              void handleAnalyze(nextEnemyName);
-            }}
-            placeholder="Charizard"
-          />
+          <div className="form-row-header">
+            <label htmlFor="enemy-name">Enemy Pokemon</label>
+            <div className="input-tools">
+              <button
+                type="button"
+                className="input-tool-button"
+                onClick={() => setIsRecentEnemiesOpen((current) => !current)}
+                aria-expanded={isRecentEnemiesOpen}
+                aria-label="Toggle recent enemy Pokemon"
+              >
+                <svg
+                  className="input-tool-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 2a10 10 0 1 0 10 10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M12 6v7l4 2"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div className="input-with-clear">
+            <PokemonAutocompleteInput
+              id="enemy-name"
+              value={enemyName}
+              suggestionDataset={autocompleteDataset}
+              onValueChange={(value) =>
+                setEnemyName(normalizePokemonNameInput(value))
+              }
+              onSuggestionSelect={handleEnemySuggestionSelect}
+              onEnterPressed={(nextEnemyName) => {
+                void handleAnalyze(nextEnemyName);
+              }}
+              placeholder="Charizard"
+            />
+            <button
+              type="button"
+              className="clear-input-button"
+              onClick={() => setEnemyName("")}
+              aria-label="Clear enemy Pokemon"
+            >
+              x
+            </button>
+          </div>
+          {isRecentEnemiesOpen ? (
+            <div className="recent-enemies-popup">
+              {recentEnemyNames.length > 0 ? (
+                <ul className="recent-enemies-list">
+                  {recentEnemyNames.map((recentEnemy) => (
+                    <li key={recentEnemy}>
+                      <button
+                        type="button"
+                        className="recent-enemy-button"
+                        onClick={() => handleRecentEnemySelect(recentEnemy)}
+                      >
+                        {formatPokemonName(recentEnemy)}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="recent-enemies-empty">No recent enemies yet.</p>
+              )}
+            </div>
+          ) : null}
         </div>
 
         <div className="form-row">
           <label htmlFor="enemy-move-types">Enemy move types (optional)</label>
-          <PokemonAutocompleteInput
-            id="enemy-move-types"
-            value={enemyMoveTypeInput}
-            suggestionDataset={moveTypeDataset}
-            onValueChange={setEnemyMoveTypeInput}
-            onSuggestionSelect={setEnemyMoveTypeInput}
-            onEnterPressed={() => {
-              void handleAnalyze();
-            }}
-            getSuggestionQuery={getLastCommaSeparatedToken}
-            applySuggestion={applyCommaSeparatedSuggestion}
-            placeholder="known coverage types (comma-separated): electric, ice"
-          />
+          <div className="input-with-clear">
+            <PokemonAutocompleteInput
+              id="enemy-move-types"
+              value={enemyMoveTypeInput}
+              suggestionDataset={moveTypeDataset}
+              onValueChange={setEnemyMoveTypeInput}
+              onSuggestionSelect={setEnemyMoveTypeInput}
+              onEnterPressed={() => {
+                void handleAnalyze();
+              }}
+              getSuggestionQuery={getLastCommaSeparatedToken}
+              applySuggestion={applyCommaSeparatedSuggestion}
+              placeholder="known coverage types (comma-separated): electric, ice"
+            />
+            <button
+              type="button"
+              className="clear-input-button"
+              onClick={() => setEnemyMoveTypeInput("")}
+              aria-label="Clear enemy move types"
+            >
+              x
+            </button>
+          </div>
         </div>
 
         <div className="form-row">
