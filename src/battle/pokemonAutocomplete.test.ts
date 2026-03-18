@@ -5,7 +5,7 @@ import {
 } from "./pokemonAutocomplete";
 
 describe("getAutocompleteDataset", () => {
-  it("keeps base species and common forms while excluding special variants", () => {
+  it("keeps base species and common forms while excluding cosmetic/event variants", () => {
     const dataset = getAutocompleteDataset([
       "pikachu",
       "pikachu-rock-star",
@@ -15,7 +15,23 @@ describe("getAutocompleteDataset", () => {
       "eevee-gmax",
     ]);
 
-    expect(dataset).toEqual(["pikachu", "landorus-therian", "rattata-alola"]);
+    expect(dataset).toEqual([
+      "pikachu",
+      "charizard-mega-x",
+      "landorus-therian",
+      "rattata-alola",
+    ]);
+  });
+
+  it("keeps paradox species used in VGC", () => {
+    const dataset = getAutocompleteDataset([
+      "iron-valiant",
+      "great-tusk",
+      "flutter-mane",
+      "pikachu-rock-star",
+    ]);
+
+    expect(dataset).toEqual(["flutter-mane", "great-tusk", "iron-valiant"]);
   });
 });
 

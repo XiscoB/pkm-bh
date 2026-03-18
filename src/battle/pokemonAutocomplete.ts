@@ -2,7 +2,6 @@ const EXCLUDED_FORM_TOKENS = new Set([
   "totem",
   "starter",
   "gmax",
-  "mega",
   "cap",
   "cosplay",
   "belle",
@@ -36,6 +35,20 @@ const COMMON_FORM_SUFFIXES = new Set([
   "altered",
 ]);
 
+const PARADOX_PREFIXES = new Set([
+  "great",
+  "scream",
+  "brute",
+  "flutter",
+  "slither",
+  "sandy",
+  "roaring",
+  "walking",
+  "gouging",
+  "raging",
+  "iron",
+]);
+
 function hasExcludedFormToken(tokens: string[]): boolean {
   return tokens.some((token) => EXCLUDED_FORM_TOKENS.has(token));
 }
@@ -51,6 +64,18 @@ function isBaseOrCommonForm(name: string): boolean {
 
   if (hasExcludedFormToken(suffixTokens)) {
     return false;
+  }
+
+  if (parts.length === 2 && PARADOX_PREFIXES.has(parts[0])) {
+    return true;
+  }
+
+  if (suffixTokens[0] === "mega") {
+    return (
+      suffixTokens.length === 1 ||
+      (suffixTokens.length === 2 &&
+        (suffixTokens[1] === "x" || suffixTokens[1] === "y"))
+    );
   }
 
   return suffixTokens.length === 1 && COMMON_FORM_SUFFIXES.has(suffixTokens[0]);
