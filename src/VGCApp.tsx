@@ -118,7 +118,8 @@ function loadBattleState(): SavedBattleState {
               baseStats:
                 entry.baseStats &&
                 typeof entry.baseStats === "object" &&
-                typeof (entry.baseStats as Record<string, unknown>).defense === "number"
+                typeof (entry.baseStats as Record<string, unknown>).defense ===
+                  "number"
                   ? (entry.baseStats as PokemonBaseStats)
                   : null,
               onField:
