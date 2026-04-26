@@ -27,6 +27,448 @@ body {
   gap: 0.65rem;
 }
 
+/* ── Format switcher ─────────────────────────────────────────────────────────── */
+
+.format-switcher {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.55rem;
+}
+
+.format-tab {
+  flex: 1;
+  height: 2.1rem;
+  border: 1px solid #3f628f;
+  border-radius: 0.45rem;
+  background: #1b2f4a;
+  color: #b8cae3;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.format-tab:hover {
+  background: #223a5c;
+  color: #dce9ff;
+}
+
+.format-tab-active {
+  background: #254a7a;
+  border-color: #6fa3d8;
+  color: #f0f8ff;
+}
+
+.format-tab:focus-visible {
+  outline: 2px solid #f3cc67;
+  outline-offset: 2px;
+}
+
+/* ── VGC shared layout ───────────────────────────────────────────────────────── */
+
+.vgc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.vgc-header h1 {
+  margin: 0;
+  font-size: clamp(1rem, 3.2vw, 1.35rem);
+}
+
+.vgc-new-battle-btn {
+  flex-shrink: 0;
+}
+
+.vgc-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+}
+
+.vgc-section-header h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+.vgc-section-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.vgc-hint {
+  margin: 0 0 0.45rem;
+  color: #9fb3d2;
+  font-size: 0.76rem;
+}
+
+.on-field-indicator {
+  color: #a8c4e0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.roster-editor {
+  margin-top: 0.45rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+/* ── Team picker ─────────────────────────────────────────────────────────────── */
+
+.team-picker {
+  margin-top: 0.45rem;
+  padding: 0.55rem;
+  border: 1px solid #3f628f;
+  border-radius: 0.45rem;
+  background: #132640;
+}
+
+.team-picker-title {
+  margin: 0 0 0.4rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.team-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-bottom: 0.45rem;
+}
+
+.picker-card {
+  height: 2.25rem;
+  border: 1px solid #3f628f;
+  border-radius: 0.4rem;
+  background: #1b2f4a;
+  color: #dce9ff;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0 0.35rem;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.picker-card-selected {
+  background: #1e4a7c;
+  border-color: #f3cc67;
+  color: #f8f8f8;
+}
+
+.team-picker-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem;
+}
+
+/* ── Active team grid ────────────────────────────────────────────────────────── */
+
+.active-team-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.pokemon-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.45rem 0.3rem;
+  border: 1px solid #3f628f;
+  border-radius: 0.5rem;
+  background: #1b2f4a;
+  color: #dce9ff;
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  min-height: 4.5rem;
+}
+
+.pokemon-card:hover {
+  background: #223a5c;
+  border-color: #6fa3d8;
+}
+
+.pokemon-card-on-field {
+  background: #1a3e6e;
+  border-color: #f3cc67;
+  box-shadow: 0 0 0 1px rgba(243, 204, 103, 0.35);
+}
+
+.pokemon-card-disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pokemon-card-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #223a5c;
+}
+
+.pokemon-card-name {
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  font-size: 0.75rem;
+}
+
+.on-field-badge {
+  font-size: 0.7rem;
+  color: #f3cc67;
+  font-weight: 800;
+}
+
+/* ── Enemy cards ─────────────────────────────────────────────────────────────── */
+
+.enemy-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.enemy-card {
+  border: 1px solid #314d73;
+  border-radius: 0.45rem;
+  background: #152844;
+  padding: 0.45rem 0.5rem;
+}
+
+.enemy-card-on-field {
+  border-color: #f3cc67;
+  background: #1a2f4d;
+}
+
+.enemy-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-content: space-between;
+}
+
+.enemy-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.enemy-card-name-row .autocomplete-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.enemy-card-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.enemy-card-actions .secondary-button {
+  padding: 0 0.5rem;
+}
+
+.on-field-active {
+  border-color: #f3cc67 !important;
+  color: #f3cc67;
+}
+
+.enemy-card-expanded {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #2d4669;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.enemy-card-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #a8c4e0;
+}
+
+.loading-text {
+  color: #9fb3d2;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.enemy-defense-row {
+  margin-top: 0.3rem;
+  display: flex;
+}
+
+.defense-profile {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: default;
+}
+
+.defense-profile-phys {
+  background: #1e3a50;
+  border-color: #4a8fbf;
+  color: #a8d8f8;
+}
+
+.defense-profile-special {
+  background: #2c1e4a;
+  border-color: #7a5abf;
+  color: #cbaef8;
+}
+
+.defense-profile-balanced {
+  background: #1e3a2c;
+  border-color: #4abf7a;
+  color: #a8f8d0;
+}
+
+/* ── Type chip selector ──────────────────────────────────────────────────────── */
+
+.type-chip-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.type-chip {
+  height: 1.7rem;
+  padding: 0 0.45rem;
+  border: 1px solid #3a5878;
+  border-radius: 999px;
+  background: #1b2f4a;
+  color: #b8cae3;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+
+.type-chip:hover {
+  background: #223a5c;
+  color: #dce9ff;
+}
+
+.type-chip-selected {
+  background: #254a7a;
+  border-color: #7abaff;
+  color: #e8f4ff;
+}
+
+/* ── 2v2 matchup grid ────────────────────────────────────────────────────────── */
+
+.matchup-grid {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.matchup-header-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem;
+  background: #132640;
+  border-radius: 0.35rem;
+  min-height: 2.5rem;
+}
+
+.matchup-row-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem;
+  background: #132640;
+  border-radius: 0.35rem;
+  justify-content: center;
+}
+
+.matchup-header-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  word-break: break-word;
+  color: #c9ddfb;
+}
+
+.matchup-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem;
+  border: 1px solid #2d4669;
+  border-radius: 0.4rem;
+  background: #152844;
+}
+
+.matchup-cell .status-button {
+  width: 100%;
+  font-size: 0.72rem;
+  min-width: 0;
+}
+
+.matchup-cell-badges {
+  display: flex;
+  gap: 0.2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.matchup-cell-badges .status {
+  min-width: 0;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.65rem;
+}
+
+.matchup-cell .status-explanation {
+  width: 100%;
+  font-size: 0.7rem;
+}
+
+/* ── Responsive adjustments ──────────────────────────────────────────────────── */
+
+@media (max-width: 760px) {
+  .active-team-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .team-picker-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .enemy-card-actions .secondary-button {
+    padding: 0 0.35rem;
+    font-size: 0.74rem;
+  }
+}
+
 input {
   width: 100%;
   height: 2.25rem;
