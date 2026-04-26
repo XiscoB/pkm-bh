@@ -44,7 +44,10 @@ body {
   color: #b8cae3;
   font-weight: 700;
   font-size: 0.85rem;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .format-tab:hover {
@@ -152,7 +155,9 @@ body {
   font-weight: 600;
   font-size: 0.82rem;
   padding: 0 0.35rem;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .picker-card-selected {
@@ -188,7 +193,9 @@ body {
   font-weight: 600;
   font-size: 0.78rem;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
   min-height: 4.5rem;
 }
 
@@ -305,6 +312,39 @@ body {
   flex-shrink: 0;
 }
 
+.enemy-defense-row {
+  margin-top: 0.3rem;
+  display: flex;
+}
+
+.defense-profile {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: default;
+}
+
+.defense-profile-phys {
+  background: #1e3a50;
+  border-color: #4a8fbf;
+  color: #a8d8f8;
+}
+
+.defense-profile-special {
+  background: #2c1e4a;
+  border-color: #7a5abf;
+  color: #cbaef8;
+}
+
+.defense-profile-balanced {
+  background: #1e3a2c;
+  border-color: #4abf7a;
+  color: #a8f8d0;
+}
+
 /* ── Type chip selector ──────────────────────────────────────────────────────── */
 
 .type-chip-selector {
@@ -323,7 +363,10 @@ body {
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: capitalize;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
 }
 
 .type-chip:hover {

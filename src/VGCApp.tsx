@@ -9,14 +9,26 @@ import {
   type ActiveMyPokemon,
   type RosterEvalSummary,
 } from "./battle/vgcAnalysis";
-import type { EnemyEntry, FieldMatchupCell, FieldMatchupGrid, RosterPokemon } from "./battle/vgcTypes";
+import type {
+  EnemyEntry,
+  FieldMatchupCell,
+  FieldMatchupGrid,
+  RosterPokemon,
+} from "./battle/vgcTypes";
 import { parseOptionalMoveTypesInput } from "./battle/advancedAnalysis";
-import { getWeaknesses, isPokemonType, TYPE_NAMES, type PokemonType } from "./battle/typeEffectiveness";
 import {
+  getWeaknesses,
+  isPokemonType,
+  TYPE_NAMES,
+  type PokemonType,
+} from "./battle/typeEffectiveness";
+import {
+  fetchPokemonBaseStats,
   fetchPokemonCoverageTypes,
   fetchPokemonNameIndex,
   fetchPokemonSpriteUrl,
   fetchPokemonTypes,
+  type PokemonBaseStats,
 } from "./data/pokeapi";
 
 const ROSTER_KEY = "pkm-bh-roster";
@@ -45,9 +57,11 @@ function loadRoster(): RosterPokemon[] {
       .slice(0, ROSTER_SIZE)
       .map((item) => ({
         name: typeof item?.name === "string" ? item.name : "",
-        moveTypeInput: typeof item?.moveTypeInput === "string" ? item.moveTypeInput : "",
+        moveTypeInput:
+          typeof item?.moveTypeInput === "string" ? item.moveTypeInput : "",
       }));
-    while (roster.length < ROSTER_SIZE) roster.push({ name: "", moveTypeInput: "" });
+    while (roster.length < ROSTER_SIZE)
+      roster.push({ name: "", moveTypeInput: "" });
     return roster;
   } catch {
     return empty;
@@ -68,11 +82,15 @@ function loadBattleState(): SavedBattleState {
     const rec = parsed as Record<string, unknown>;
 
     const selectedRosterIndices = Array.isArray(rec.selectedRosterIndices)
-      ? (rec.selectedRosterIndices as unknown[]).filter((n): n is number => typeof n === "number")
+      ? (rec.selectedRosterIndices as unknown[]).filter(
+          (n): n is number => typeof n === "number",
+        )
       : [];
 
     const myOnFieldRosterIndices = Array.isArray(rec.myOnFieldRosterIndices)
-      ? (rec.myOnFieldRosterIndices as unknown[]).filter((n): n is number => typeof n === "number")
+      ? (rec.myOnFieldRosterIndices as unknown[]).filter(
+          (n): n is number => typeof n === "number",
+        )
       : [];
 
     const enemies = Array.isArray(rec.enemies)
@@ -87,12 +105,24 @@ function loadBattleState(): SavedBattleState {
                 ? (entry.types as unknown[]).filter(isPokemonType)
                 : [],
               moveTypeInput:
-                typeof entry.moveTypeInput === "string" ? entry.moveTypeInput : "",
+                typeof entry.moveTypeInput === "string"
+                  ? entry.moveTypeInput
+                  : "",
               fetchedCoverageTypes: Array.isArray(entry.fetchedCoverageTypes)
-                ? (entry.fetchedCoverageTypes as unknown[]).filter(isPokemonType)
+                ? (entry.fetchedCoverageTypes as unknown[]).filter(
+                    isPokemonType,
+                  )
                 : [],
-              spriteUrl: typeof entry.spriteUrl === "string" ? entry.spriteUrl : null,
-              onField: typeof entry.onField === "boolean" ? entry.onField : false,
+              spriteUrl:
+                typeof entry.spriteUrl === "string" ? entry.spriteUrl : null,
+              baseStats:
+                entry.baseStats &&
+                typeof entry.baseStats === "object" &&
+                typeof (entry.baseStats as Record<string, unknown>).defense === "number"
+                  ? (entry.baseStats as PokemonBaseStats)
+                  : null,
+              onField:
+                typeof entry.onField === "boolean" ? entry.onField : false,
             };
           })
           .filter((e): e is EnemyEntry => e !== null)
@@ -126,7 +156,10 @@ function getLastCommaSeparatedToken(value: string): string {
   return (parts[parts.length - 1] ?? "").trim().toLowerCase();
 }
 
-function applyCommaSeparatedSuggestion(current: string, suggestion: string): string {
+function applyCommaSeparatedSuggestion(
+  current: string,
+  suggestion: string,
+): string {
   const parts = current
     .split(",")
     .slice(0, -1)
@@ -178,6 +211,32 @@ function getCellDangerExplanation(cell: FieldMatchupCell): string {
         : "High";
   const myLabel = formatPokemonName(cell.myPokemonName);
   return `${level} danger (${cell.evaluation.dangerScore}) for ${myLabel} in this matchup.`;
+}
+
+function getDefenseProfile(
+  defense: number,
+  specialDefense: number,
+): { label: string; hint: string; className: string } {
+  const diff = defense - specialDefense;
+  if (diff >= 15) {
+    return {
+      label: "Phys.Def ↑",
+      hint: `Def ${defense} > SpDef ${specialDefense} — favor special attackers`,
+      className: "defense-profile defense-profile-phys",
+    };
+  }
+  if (diff <= -15) {
+    return {
+      label: "Sp.Def ↑",
+      hint: `SpDef ${specialDefense} > Def ${defense} — favor physical attackers`,
+      className: "defense-profile defense-profile-special",
+    };
+  }
+  return {
+    label: "Balanced",
+    hint: `Def ${defense} / SpDef ${specialDefense}`,
+    className: "defense-profile defense-profile-balanced",
+  };
 }
 
 // ── Autocomplete input (self-contained, mirrors the one in LegacyApp) ─────────
@@ -267,7 +326,11 @@ function AutocompleteInput({
             <li key={s}>
               <button
                 type="button"
-                className={i === activeIndex ? "autocomplete-option is-active" : "autocomplete-option"}
+                className={
+                  i === activeIndex
+                    ? "autocomplete-option is-active"
+                    : "autocomplete-option"
+                }
                 onMouseDown={() => {
                   const next = applySuggestion ? applySuggestion(value, s) : s;
                   onSuggestionSelect(next);
@@ -300,7 +363,11 @@ function TypeChipSelector({
         <button
           key={type}
           type="button"
-          className={selectedTypes.includes(type) ? "type-chip type-chip-selected" : "type-chip"}
+          className={
+            selectedTypes.includes(type)
+              ? "type-chip type-chip-selected"
+              : "type-chip"
+          }
           onClick={() => onToggle(type)}
         >
           {type}
@@ -321,13 +388,17 @@ export default function VGCApp() {
 
   // Battle state (persisted)
   const [selectedRosterIndices, setSelectedRosterIndices] = useState<number[]>(
-    () => initialBattle.selectedRosterIndices.filter((i) => i >= 0 && i < ROSTER_SIZE),
-  );
-  const [myOnFieldRosterIndices, setMyOnFieldRosterIndices] = useState<number[]>(
     () =>
-      initialBattle.myOnFieldRosterIndices.filter((i) =>
-        initialBattle.selectedRosterIndices.includes(i),
+      initialBattle.selectedRosterIndices.filter(
+        (i) => i >= 0 && i < ROSTER_SIZE,
       ),
+  );
+  const [myOnFieldRosterIndices, setMyOnFieldRosterIndices] = useState<
+    number[]
+  >(() =>
+    initialBattle.myOnFieldRosterIndices.filter((i) =>
+      initialBattle.selectedRosterIndices.includes(i),
+    ),
   );
   const [enemies, setEnemies] = useState<EnemyEntry[]>(initialBattle.enemies);
 
@@ -348,9 +419,15 @@ export default function VGCApp() {
   const moveTypeDataset = useMemo(() => [...TYPE_NAMES], []);
 
   // UI state
-  const [activeExplanationKey, setActiveExplanationKey] = useState<string | null>(null);
-  const [expandedEnemyIds, setExpandedEnemyIds] = useState<Set<string>>(new Set());
-  const [loadingEnemyIds, setLoadingEnemyIds] = useState<Set<string>>(new Set());
+  const [activeExplanationKey, setActiveExplanationKey] = useState<
+    string | null
+  >(null);
+  const [expandedEnemyIds, setExpandedEnemyIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [loadingEnemyIds, setLoadingEnemyIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   // ── Effects ──────────────────────────────────────────────────────────────────
 
@@ -367,7 +444,11 @@ export default function VGCApp() {
   useEffect(() => {
     localStorage.setItem(
       VGC_BATTLE_KEY,
-      JSON.stringify({ selectedRosterIndices, myOnFieldRosterIndices, enemies }),
+      JSON.stringify({
+        selectedRosterIndices,
+        myOnFieldRosterIndices,
+        enemies,
+      }),
     );
   }, [selectedRosterIndices, myOnFieldRosterIndices, enemies]);
 
@@ -421,7 +502,11 @@ export default function VGCApp() {
         const name = p.name.trim().toLowerCase();
         const types = typeMap[name];
         if (!types || types.length === 0) return null;
-        return { name, types, moveTypes: parseOptionalMoveTypesInput(p.moveTypeInput) };
+        return {
+          name,
+          types,
+          moveTypes: parseOptionalMoveTypesInput(p.moveTypeInput),
+        };
       })
       .filter((p): p is ActiveMyPokemon => p !== null);
 
@@ -439,7 +524,11 @@ export default function VGCApp() {
         const name = p.name.trim().toLowerCase();
         const types = typeMap[name];
         if (!types || types.length === 0) return null;
-        return { name, types, moveTypes: parseOptionalMoveTypesInput(p.moveTypeInput) };
+        return {
+          name,
+          types,
+          moveTypes: parseOptionalMoveTypesInput(p.moveTypeInput),
+        };
       })
       .filter((p): p is ActiveMyPokemon => p !== null);
     if (activePokemon.length === 0) return [];
@@ -449,7 +538,9 @@ export default function VGCApp() {
   // ── Roster handlers ───────────────────────────────────────────────────────────
 
   const updateRosterSlot = (index: number, updates: Partial<RosterPokemon>) => {
-    setRoster((prev) => prev.map((entry, i) => (i === index ? { ...entry, ...updates } : entry)));
+    setRoster((prev) =>
+      prev.map((entry, i) => (i === index ? { ...entry, ...updates } : entry)),
+    );
   };
 
   // ── Team picker ───────────────────────────────────────────────────────────────
@@ -478,7 +569,8 @@ export default function VGCApp() {
 
   const toggleMyOnField = (rosterIndex: number) => {
     setMyOnFieldRosterIndices((prev) => {
-      if (prev.includes(rosterIndex)) return prev.filter((i) => i !== rosterIndex);
+      if (prev.includes(rosterIndex))
+        return prev.filter((i) => i !== rosterIndex);
       if (prev.length >= 2) return prev;
       return [...prev, rosterIndex];
     });
@@ -510,6 +602,7 @@ export default function VGCApp() {
         moveTypeInput: "",
         fetchedCoverageTypes: [],
         spriteUrl: null,
+        baseStats: null,
         onField: false,
       },
     ]);
@@ -520,7 +613,9 @@ export default function VGCApp() {
   };
 
   const updateEnemy = (id: string, updates: Partial<EnemyEntry>) => {
-    setEnemies((prev) => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));
+    setEnemies((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+    );
   };
 
   const fetchEnemyDataByName = async (id: string, name: string) => {
@@ -528,12 +623,22 @@ export default function VGCApp() {
     if (!normalizedName) return;
     setLoadingEnemyIds((prev) => new Set([...prev, id]));
     try {
-      const [types, coverage, sprite] = await Promise.all([
+      const [types, coverage, sprite, baseStats] = await Promise.all([
         fetchPokemonTypes(normalizedName),
-        fetchPokemonCoverageTypes(normalizedName).catch((): PokemonType[] => []),
+        fetchPokemonCoverageTypes(normalizedName).catch(
+          (): PokemonType[] => [],
+        ),
         fetchPokemonSpriteUrl(normalizedName).catch((): string | null => null),
+        fetchPokemonBaseStats(normalizedName).catch(
+          (): PokemonBaseStats | null => null,
+        ),
       ]);
-      updateEnemy(id, { types, fetchedCoverageTypes: coverage, spriteUrl: sprite });
+      updateEnemy(id, {
+        types,
+        fetchedCoverageTypes: coverage,
+        spriteUrl: sprite,
+        baseStats,
+      });
     } catch {
       // Keep existing types on error
     } finally {
@@ -586,7 +691,9 @@ export default function VGCApp() {
   const hasActiveTeam = selectedRosterIndices.length === 4;
   const myOnFieldCount = myOnFieldRosterIndices.length;
   const enemyOnFieldCount = enemies.filter((e) => e.onField).length;
-  const namedRosterCount = roster.filter((p) => p.name.trim().length > 0).length;
+  const namedRosterCount = roster.filter(
+    (p) => p.name.trim().length > 0,
+  ).length;
 
   const enemiesOnField = enemies.filter((e) => e.onField && e.types.length > 0);
 
@@ -598,14 +705,22 @@ export default function VGCApp() {
       <header className="panel control-panel">
         <div className="vgc-header">
           <h1>VGC Battle Helper</h1>
-          <button type="button" className="secondary-button vgc-new-battle-btn" onClick={handleNewBattle}>
+          <button
+            type="button"
+            className="secondary-button vgc-new-battle-btn"
+            onClick={handleNewBattle}
+          >
             New Battle
           </button>
         </div>
 
         <button
           type="button"
-          className={isRosterOpen ? "team-collapse-toggle is-open" : "team-collapse-toggle is-closed"}
+          className={
+            isRosterOpen
+              ? "team-collapse-toggle is-open"
+              : "team-collapse-toggle is-closed"
+          }
           onClick={() => setIsRosterOpen((c) => !c)}
           aria-expanded={isRosterOpen}
         >
@@ -622,7 +737,9 @@ export default function VGCApp() {
                 <AutocompleteInput
                   value={p.name}
                   suggestionDataset={autocompleteDataset}
-                  onValueChange={(v) => updateRosterSlot(i, { name: normalizePokemonNameInput(v) })}
+                  onValueChange={(v) =>
+                    updateRosterSlot(i, { name: normalizePokemonNameInput(v) })
+                  }
                   onSuggestionSelect={(v) => updateRosterSlot(i, { name: v })}
                   placeholder={`Slot ${i + 1}`}
                   ariaLabel={`Roster slot ${i + 1}`}
@@ -630,8 +747,12 @@ export default function VGCApp() {
                 <AutocompleteInput
                   value={p.moveTypeInput}
                   suggestionDataset={moveTypeDataset}
-                  onValueChange={(v) => updateRosterSlot(i, { moveTypeInput: v })}
-                  onSuggestionSelect={(v) => updateRosterSlot(i, { moveTypeInput: v })}
+                  onValueChange={(v) =>
+                    updateRosterSlot(i, { moveTypeInput: v })
+                  }
+                  onSuggestionSelect={(v) =>
+                    updateRosterSlot(i, { moveTypeInput: v })
+                  }
                   getSuggestionQuery={getLastCommaSeparatedToken}
                   applySuggestion={applyCommaSeparatedSuggestion}
                   placeholder="move types (optional)"
@@ -646,7 +767,9 @@ export default function VGCApp() {
               onClick={openTeamPicker}
               disabled={namedRosterCount < 4}
             >
-              {hasActiveTeam ? "Change Battle Team (4)" : "Select 4 for This Battle"}
+              {hasActiveTeam
+                ? "Change Battle Team (4)"
+                : "Select 4 for This Battle"}
             </button>
           </div>
         ) : null}
@@ -702,12 +825,20 @@ export default function VGCApp() {
         <section className="panel">
           <div className="vgc-section-header">
             <h2>My Team</h2>
-            <span className="on-field-indicator">On Field: {myOnFieldCount}/2</span>
-            <button type="button" className="secondary-button" onClick={openTeamPicker}>
+            <span className="on-field-indicator">
+              On Field: {myOnFieldCount}/2
+            </span>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={openTeamPicker}
+            >
               Change
             </button>
           </div>
-          <p className="vgc-hint">Tap a Pokémon to mark it as on the field (max 2).</p>
+          <p className="vgc-hint">
+            Tap a Pokémon to mark it as on the field (max 2).
+          </p>
           <div className="active-team-grid">
             {selectedRosterIndices.map((rIdx) => {
               const p = roster[rIdx];
@@ -741,7 +872,9 @@ export default function VGCApp() {
                   ) : (
                     <div className="pokemon-card-placeholder" />
                   )}
-                  <span className="pokemon-card-name">{formatPokemonName(p.name)}</span>
+                  <span className="pokemon-card-name">
+                    {formatPokemonName(p.name)}
+                  </span>
                   {isOnField ? <span className="on-field-badge">⚔</span> : null}
                 </button>
               );
@@ -760,9 +893,15 @@ export default function VGCApp() {
       <section className="panel">
         <div className="vgc-section-header">
           <h2>Known Enemies</h2>
-          <span className="on-field-indicator">On Field: {enemyOnFieldCount}/2</span>
+          <span className="on-field-indicator">
+            On Field: {enemyOnFieldCount}/2
+          </span>
           {enemies.length < 6 ? (
-            <button type="button" className="secondary-button" onClick={addEnemy}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={addEnemy}
+            >
               + Add
             </button>
           ) : null}
@@ -770,7 +909,8 @@ export default function VGCApp() {
 
         {enemies.length === 0 ? (
           <p className="empty-text">
-            Add enemies as you discover them. Name is optional — you can select types directly.
+            Add enemies as you discover them. Name is optional — you can select
+            types directly.
           </p>
         ) : (
           <div className="enemy-list">
@@ -779,12 +919,17 @@ export default function VGCApp() {
               const canToggleOnField = isOnField || enemyOnFieldCount < 2;
               const isExpanded = expandedEnemyIds.has(enemy.id);
               const isLoading = loadingEnemyIds.has(enemy.id);
-              const weaknesses = getWeaknesses(enemy.types).filter((w) => w.multiplier > 1);
+              const weaknesses = getWeaknesses(enemy.types).filter(
+                (w) => w.multiplier > 1,
+              );
 
               return (
                 <div
                   key={enemy.id}
-                  className={["enemy-card", isOnField ? "enemy-card-on-field" : ""]
+                  className={[
+                    "enemy-card",
+                    isOnField ? "enemy-card-on-field" : "",
+                  ]
                     .filter(Boolean)
                     .join(" ")}
                 >
@@ -792,13 +937,19 @@ export default function VGCApp() {
                   <div className="enemy-card-header">
                     <div className="enemy-card-name-row">
                       {enemy.spriteUrl ? (
-                        <img src={enemy.spriteUrl} alt="enemy sprite" className="team-sprite" />
+                        <img
+                          src={enemy.spriteUrl}
+                          alt="enemy sprite"
+                          className="team-sprite"
+                        />
                       ) : null}
                       <AutocompleteInput
                         value={enemy.name}
                         suggestionDataset={autocompleteDataset}
                         onValueChange={(v) =>
-                          updateEnemy(enemy.id, { name: normalizePokemonNameInput(v) })
+                          updateEnemy(enemy.id, {
+                            name: normalizePokemonNameInput(v),
+                          })
                         }
                         onSuggestionSelect={(v) => {
                           updateEnemy(enemy.id, { name: v });
@@ -810,7 +961,9 @@ export default function VGCApp() {
                         placeholder="Name (optional)"
                         ariaLabel="Enemy name"
                       />
-                      {isLoading ? <span className="loading-text">…</span> : null}
+                      {isLoading ? (
+                        <span className="loading-text">…</span>
+                      ) : null}
                     </div>
                     <div className="enemy-card-actions">
                       <button
@@ -860,17 +1013,44 @@ export default function VGCApp() {
                       {weaknesses.map((w) => (
                         <li
                           key={`w-${w.type}`}
-                          className={w.multiplier >= 4 ? "chip chip-danger" : "chip chip-warn"}
+                          className={
+                            w.multiplier >= 4
+                              ? "chip chip-danger"
+                              : "chip chip-warn"
+                          }
                         >
                           weak: {w.type} x{w.multiplier}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="empty-text" style={{ fontSize: "0.78rem", margin: "0.3rem 0 0" }}>
+                    <p
+                      className="empty-text"
+                      style={{ fontSize: "0.78rem", margin: "0.3rem 0 0" }}
+                    >
                       No types set — tap ▼ to add types.
                     </p>
                   )}
+
+                  {/* Defense profile indicator */}
+                  {enemy.baseStats ? (
+                    <div className="enemy-defense-row">
+                      {(() => {
+                        const profile = getDefenseProfile(
+                          enemy.baseStats.defense,
+                          enemy.baseStats.specialDefense,
+                        );
+                        return (
+                          <span
+                            className={profile.className}
+                            title={profile.hint}
+                          >
+                            {profile.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  ) : null}
 
                   {/* Expanded: type selector + move types */}
                   {isExpanded ? (
@@ -880,12 +1060,18 @@ export default function VGCApp() {
                         selectedTypes={enemy.types}
                         onToggle={(t) => toggleEnemyType(enemy.id, t)}
                       />
-                      <p className="enemy-card-label">Known move types (optional):</p>
+                      <p className="enemy-card-label">
+                        Known move types (optional):
+                      </p>
                       <AutocompleteInput
                         value={enemy.moveTypeInput}
                         suggestionDataset={moveTypeDataset}
-                        onValueChange={(v) => updateEnemy(enemy.id, { moveTypeInput: v })}
-                        onSuggestionSelect={(v) => updateEnemy(enemy.id, { moveTypeInput: v })}
+                        onValueChange={(v) =>
+                          updateEnemy(enemy.id, { moveTypeInput: v })
+                        }
+                        onSuggestionSelect={(v) =>
+                          updateEnemy(enemy.id, { moveTypeInput: v })
+                        }
                         getSuggestionQuery={getLastCommaSeparatedToken}
                         applySuggestion={applyCommaSeparatedSuggestion}
                         placeholder="e.g. ice, thunder"
@@ -916,13 +1102,41 @@ export default function VGCApp() {
             {enemiesOnField.map((enemy) => (
               <div key={enemy.id} className="matchup-header-cell">
                 {enemy.spriteUrl ? (
-                  <img src={enemy.spriteUrl} alt="enemy" className="team-sprite" />
+                  <img
+                    src={enemy.spriteUrl}
+                    alt="enemy"
+                    className="team-sprite"
+                  />
                 ) : null}
                 <span className="matchup-header-name">
                   {enemy.name
                     ? formatPokemonName(enemy.name)
                     : enemy.types.map((t) => formatPokemonName(t)).join("/")}
                 </span>
+                {enemy.baseStats ? (
+                  <span
+                    className={
+                      getDefenseProfile(
+                        enemy.baseStats.defense,
+                        enemy.baseStats.specialDefense,
+                      ).className
+                    }
+                    title={
+                      getDefenseProfile(
+                        enemy.baseStats.defense,
+                        enemy.baseStats.specialDefense,
+                      ).hint
+                    }
+                    style={{ marginTop: "0.2rem" }}
+                  >
+                    {
+                      getDefenseProfile(
+                        enemy.baseStats.defense,
+                        enemy.baseStats.specialDefense,
+                      ).label
+                    }
+                  </span>
+                ) : null}
               </div>
             ))}
 
@@ -937,10 +1151,16 @@ export default function VGCApp() {
                 <>
                   <div key={`rh-${ri}`} className="matchup-row-header">
                     {mySprite ? (
-                      <img src={mySprite} alt={myName} className="team-sprite" />
+                      <img
+                        src={mySprite}
+                        alt={myName}
+                        className="team-sprite"
+                      />
                     ) : null}
                     <span className="matchup-header-name">
-                      {myPokemon ? formatPokemonName(myPokemon.name) : `Slot ${ri + 1}`}
+                      {myPokemon
+                        ? formatPokemonName(myPokemon.name)
+                        : `Slot ${ri + 1}`}
                     </span>
                   </div>
                   {row.map((cell, ci) => {
@@ -952,13 +1172,17 @@ export default function VGCApp() {
                           type="button"
                           className={`${strengthClassName(cell.evaluation.strength)} status-button ${isActive ? "status-button-active" : ""}`}
                           onClick={() =>
-                            setActiveExplanationKey((prev) => (prev === key ? null : key))
+                            setActiveExplanationKey((prev) =>
+                              prev === key ? null : key,
+                            )
                           }
                         >
                           {cell.evaluation.strength}
                         </button>
                         <div className="matchup-cell-badges">
-                          <span className={safetyClassName(cell.evaluation.safety)}>
+                          <span
+                            className={safetyClassName(cell.evaluation.safety)}
+                          >
                             {cell.evaluation.safety}
                           </span>
                           <span className="status status-danger">
@@ -970,7 +1194,9 @@ export default function VGCApp() {
                             <p style={{ margin: "0 0 0.15rem" }}>
                               {getCellStrengthExplanation(cell)}
                             </p>
-                            <p style={{ margin: 0 }}>{getCellDangerExplanation(cell)}</p>
+                            <p style={{ margin: 0 }}>
+                              {getCellDangerExplanation(cell)}
+                            </p>
                           </div>
                         ) : null}
                       </div>
@@ -998,7 +1224,9 @@ export default function VGCApp() {
               })
               .map((summary) => {
                 const rIdx = selectedRosterIndices.find(
-                  (i) => roster[i]?.name.trim().toLowerCase() === summary.pokemonName,
+                  (i) =>
+                    roster[i]?.name.trim().toLowerCase() ===
+                    summary.pokemonName,
                 );
                 const sprite =
                   rIdx !== undefined
@@ -1019,10 +1247,18 @@ export default function VGCApp() {
                           {formatPokemonName(summary.pokemonName)}
                         </span>
                       </span>
-                      <span className="status status-strong">{summary.strongCount}✓</span>
-                      <span className="status status-neutral">{summary.neutralCount}~</span>
-                      <span className="status status-weak">{summary.weakCount}✗</span>
-                      <span className="status status-danger">D{summary.maxDangerScore}</span>
+                      <span className="status status-strong">
+                        {summary.strongCount}✓
+                      </span>
+                      <span className="status status-neutral">
+                        {summary.neutralCount}~
+                      </span>
+                      <span className="status status-weak">
+                        {summary.weakCount}✗
+                      </span>
+                      <span className="status status-danger">
+                        D{summary.maxDangerScore}
+                      </span>
                     </div>
                   </li>
                 );

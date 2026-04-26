@@ -39,7 +39,10 @@ describe("evaluateField2v2", () => {
       makeMyPokemon("gyarados", ["water", "flying"]),
       makeMyPokemon("pikachu", ["electric"]),
     ];
-    const enemyField = [makeEnemy("e1", ["fire", "flying"]), makeEnemy("e2", ["water"])];
+    const enemyField = [
+      makeEnemy("e1", ["fire", "flying"]),
+      makeEnemy("e2", ["water"]),
+    ];
     const grid = evaluateField2v2(myField, enemyField);
     expect(grid).toHaveLength(2);
     expect(grid[0]).toHaveLength(2);
@@ -149,7 +152,10 @@ describe("evaluateRosterVsAllEnemies", () => {
 
   it("pikachu (electric) is strong vs water enemies", () => {
     const roster = [makeMyPokemon("pikachu", ["electric"])];
-    const enemies = [makeEnemy("e1", ["water"]), makeEnemy("e2", ["water", "flying"])];
+    const enemies = [
+      makeEnemy("e1", ["water"]),
+      makeEnemy("e2", ["water", "flying"]),
+    ];
     const summaries = evaluateRosterVsAllEnemies(roster, enemies);
     expect(summaries[0].strongCount).toBe(2);
     expect(summaries[0].weakCount).toBe(0);

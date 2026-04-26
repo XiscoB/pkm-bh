@@ -1,5 +1,6 @@
 import type { PokemonType } from "./typeEffectiveness";
 import type { AdvancedTeamEvaluation } from "./advancedAnalysis";
+import type { PokemonBaseStats } from "../data/pokeapi";
 
 export type RosterPokemon = {
   name: string;
@@ -13,6 +14,7 @@ export type EnemyEntry = {
   moveTypeInput: string;
   fetchedCoverageTypes: PokemonType[];
   spriteUrl: string | null;
+  baseStats: PokemonBaseStats | null;
   onField: boolean;
 };
 

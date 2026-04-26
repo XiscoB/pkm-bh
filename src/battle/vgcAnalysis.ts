@@ -5,7 +5,11 @@ import {
   type AdvancedTeamEvaluation,
 } from "./advancedAnalysis";
 import type { PokemonType } from "./typeEffectiveness";
-import type { EnemyEntry, FieldMatchupCell, FieldMatchupGrid } from "./vgcTypes";
+import type {
+  EnemyEntry,
+  FieldMatchupCell,
+  FieldMatchupGrid,
+} from "./vgcTypes";
 
 export type ActiveMyPokemon = {
   name: string;
@@ -19,8 +23,14 @@ export function buildEnemyAttackTypes(entry: EnemyEntry): {
 } {
   const knownMoveTypes = parseOptionalMoveTypesInput(entry.moveTypeInput);
   const assumedCoverageTypes =
-    entry.fetchedCoverageTypes.length > 0 ? entry.fetchedCoverageTypes : entry.types;
-  return resolveEnemyAttackTypes(entry.types, assumedCoverageTypes, knownMoveTypes);
+    entry.fetchedCoverageTypes.length > 0
+      ? entry.fetchedCoverageTypes
+      : entry.types;
+  return resolveEnemyAttackTypes(
+    entry.types,
+    assumedCoverageTypes,
+    knownMoveTypes,
+  );
 }
 
 export function evaluateField2v2(
