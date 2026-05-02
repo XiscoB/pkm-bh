@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   getAutocompleteDataset,
   getPokemonAutocompleteSuggestions,
@@ -16,6 +16,8 @@ import type {
   RosterPokemon,
 } from "./battle/vgcTypes";
 import { parseOptionalMoveTypesInput } from "./battle/advancedAnalysis";
+import { exportTeamJson, importTeamJson } from "./battle/teamTransfer";
+import { exportEnemiesJson, importEnemiesJson } from "./battle/vgcTransfer";
 import {
   getWeaknesses,
   isPokemonType,
@@ -102,7 +104,9 @@ function loadBattleState(): SavedBattleState {
               id: typeof entry.id === "string" ? entry.id : `e${Math.random()}`,
               name: typeof entry.name === "string" ? entry.name : "",
               types: Array.isArray(entry.types)
-                ? (entry.types as unknown[]).filter(isPokemonType)
+                ? (entry.types as unknown[]).filter((v): v is PokemonType =>
+                    isPokemonType(v as string),
+                  )
                 : [],
               moveTypeInput:
                 typeof entry.moveTypeInput === "string"
@@ -110,7 +114,7 @@ function loadBattleState(): SavedBattleState {
                   : "",
               fetchedCoverageTypes: Array.isArray(entry.fetchedCoverageTypes)
                 ? (entry.fetchedCoverageTypes as unknown[]).filter(
-                    isPokemonType,
+                    (v): v is PokemonType => isPokemonType(v as string),
                   )
                 : [],
               spriteUrl:
@@ -201,6 +205,16 @@ function getCellStrengthExplanation(cell: FieldMatchupCell): string {
     return `${myLabel} has no effective coverage into ${enemyLabel}.`;
   }
   return `No clear type edge for ${myLabel} into ${enemyLabel}.`;
+}
+
+function formatEnemyLabel(detail: {
+  enemyName: string;
+  enemyTypes: PokemonType[];
+}): string {
+  if (detail.enemyName.trim()) {
+    return formatPokemonName(detail.enemyName);
+  }
+  return detail.enemyTypes.map((t) => formatPokemonName(t)).join("/");
 }
 
 function getCellDangerExplanation(cell: FieldMatchupCell): string {
@@ -423,12 +437,20 @@ export default function VGCApp() {
   const [activeExplanationKey, setActiveExplanationKey] = useState<
     string | null
   >(null);
+  const [activeSummaryKey, setActiveSummaryKey] = useState<string | null>(null);
   const [expandedEnemyIds, setExpandedEnemyIds] = useState<Set<string>>(
     new Set(),
   );
   const [loadingEnemyIds, setLoadingEnemyIds] = useState<Set<string>>(
     new Set(),
   );
+
+  // Transfer state
+  const [rosterTransferText, setRosterTransferText] = useState("");
+  const [rosterTransferMessage, setRosterTransferMessage] = useState("");
+  const [enemyTransferText, setEnemyTransferText] = useState("");
+  const [enemyTransferMessage, setEnemyTransferMessage] = useState("");
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
 
   // ── Effects ──────────────────────────────────────────────────────────────────
 
@@ -459,9 +481,10 @@ export default function VGCApp() {
       .map((i) => roster[i])
       .filter((p): p is RosterPokemon => !!p && p.name.trim().length > 0);
 
-    const toFetch = selectedPokemon.filter(
-      (p) => !typeMap[p.name.trim().toLowerCase()],
-    );
+    const toFetch = selectedPokemon.filter((p) => {
+      const cached = typeMap[p.name.trim().toLowerCase()];
+      return !cached || cached.length === 0;
+    });
     if (toFetch.length === 0) return;
 
     void Promise.all(
@@ -477,7 +500,7 @@ export default function VGCApp() {
       setTypeMap((prev) => {
         const next = { ...prev };
         results.forEach((r) => {
-          next[r.name] = r.types;
+          if (r.types.length > 0) next[r.name] = r.types;
         });
         return next;
       });
@@ -685,6 +708,109 @@ export default function VGCApp() {
     setEnemies([]);
     setActiveExplanationKey(null);
     setExpandedEnemyIds(new Set());
+  };
+
+  // ── Transfer handlers ─────────────────────────────────────────────────────────
+
+  const handleExportRoster = () => {
+    const team = roster.map((p) => p.name);
+    const moveTypeInputs = roster.map((p) => p.moveTypeInput);
+    const json = exportTeamJson(team, moveTypeInputs);
+    setRosterTransferText(json);
+    setRosterTransferMessage("Roster JSON ready.");
+  };
+
+  const handleCopyRoster = async () => {
+    const team = roster.map((p) => p.name);
+    const moveTypeInputs = roster.map((p) => p.moveTypeInput);
+    const json = exportTeamJson(team, moveTypeInputs);
+    try {
+      await navigator.clipboard.writeText(json);
+      setRosterTransferText(json);
+      setRosterTransferMessage("Roster JSON copied to clipboard.");
+    } catch {
+      setRosterTransferMessage("Clipboard copy failed.");
+    }
+  };
+
+  const handleImportRoster = (raw: string) => {
+    try {
+      const imported = importTeamJson(raw);
+      const newRoster: RosterPokemon[] = Array.from(
+        { length: ROSTER_SIZE },
+        (_, i) => ({
+          name: imported.team[i] ?? "",
+          moveTypeInput: imported.moveTypeInputs[i] ?? "",
+        }),
+      );
+      setRoster(newRoster);
+      setSelectedRosterIndices([]);
+      setMyOnFieldRosterIndices([]);
+      setRosterTransferMessage("Roster imported.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Import failed.";
+      setRosterTransferMessage(message);
+    }
+  };
+
+  const handlePasteImportRoster = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setRosterTransferText(text);
+      handleImportRoster(text);
+    } catch {
+      setRosterTransferMessage("Clipboard paste failed.");
+    }
+  };
+
+  const handleExportEnemies = () => {
+    const json = exportEnemiesJson(enemies);
+    setEnemyTransferText(json);
+    setEnemyTransferMessage("Enemies JSON ready.");
+  };
+
+  const handleCopyEnemies = async () => {
+    const json = exportEnemiesJson(enemies);
+    try {
+      await navigator.clipboard.writeText(json);
+      setEnemyTransferText(json);
+      setEnemyTransferMessage("Enemies JSON copied to clipboard.");
+    } catch {
+      setEnemyTransferMessage("Clipboard copy failed.");
+    }
+  };
+
+  const handleImportEnemies = (raw: string) => {
+    try {
+      const imported = importEnemiesJson(raw);
+      const newEnemies: EnemyEntry[] = imported.map((e) => ({
+        id: generateEnemyId(),
+        name: e.name,
+        types: e.types,
+        moveTypeInput: e.moveTypeInput,
+        fetchedCoverageTypes: [],
+        spriteUrl: null,
+        baseStats: null,
+        onField: e.onField,
+      }));
+      setEnemies(newEnemies);
+      setMyOnFieldRosterIndices([]);
+      setActiveExplanationKey(null);
+      setEnemyTransferMessage("Enemies imported.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Import failed.";
+      setEnemyTransferMessage(message);
+    }
+  };
+
+  const handlePasteImportEnemies = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setEnemyTransferText(text);
+      handleImportEnemies(text);
+    } catch {
+      setEnemyTransferMessage("Clipboard paste failed.");
+    }
   };
 
   // ── Computed counts ───────────────────────────────────────────────────────────
@@ -1143,14 +1269,12 @@ export default function VGCApp() {
 
             {/* Data rows */}
             {fieldGrid.map((row, ri) => {
-              const rIdx = myOnFieldRosterIndices[ri];
-              const myPokemon = rIdx !== undefined ? roster[rIdx] : undefined;
-              const myName = myPokemon?.name.trim().toLowerCase() ?? "";
-              const mySprite = spriteMap[myName];
+              const myName = row[0]?.myPokemonName ?? "";
+              const mySprite = myName ? spriteMap[myName] : null;
 
               return (
-                <>
-                  <div key={`rh-${ri}`} className="matchup-row-header">
+                <React.Fragment key={`row-${ri}`}>
+                  <div className="matchup-row-header">
                     {mySprite ? (
                       <img
                         src={mySprite}
@@ -1159,9 +1283,7 @@ export default function VGCApp() {
                       />
                     ) : null}
                     <span className="matchup-header-name">
-                      {myPokemon
-                        ? formatPokemonName(myPokemon.name)
-                        : `Slot ${ri + 1}`}
+                      {myName ? formatPokemonName(myName) : `Slot ${ri + 1}`}
                     </span>
                   </div>
                   {row.map((cell, ci) => {
@@ -1203,7 +1325,7 @@ export default function VGCApp() {
                       </div>
                     );
                   })}
-                </>
+                </React.Fragment>
               );
             })}
           </div>
@@ -1214,6 +1336,9 @@ export default function VGCApp() {
       {rosterSummaries.length > 0 ? (
         <section className="panel">
           <h2 className="vgc-section-title">Roster vs Known Enemies</h2>
+          <p className="vgc-hint">
+            ✓ strong • ~ neutral • ✗ weak • D max danger
+          </p>
           <ul className="team-list">
             {rosterSummaries
               .slice()
@@ -1233,6 +1358,7 @@ export default function VGCApp() {
                   rIdx !== undefined
                     ? spriteMap[roster[rIdx]?.name.trim().toLowerCase() ?? ""]
                     : null;
+                const isActive = activeSummaryKey === summary.pokemonName;
                 return (
                   <li key={summary.pokemonName} className="team-row">
                     <div className="team-row-grid">
@@ -1248,25 +1374,221 @@ export default function VGCApp() {
                           {formatPokemonName(summary.pokemonName)}
                         </span>
                       </span>
-                      <span className="status status-strong">
+                      <button
+                        type="button"
+                        className={`status status-strong status-button ${isActive ? "status-button-active" : ""}`}
+                        onClick={() =>
+                          setActiveSummaryKey((prev) =>
+                            prev === summary.pokemonName
+                              ? null
+                              : summary.pokemonName,
+                          )
+                        }
+                      >
                         {summary.strongCount}✓
-                      </span>
-                      <span className="status status-neutral">
+                      </button>
+                      <button
+                        type="button"
+                        className={`status status-neutral status-button ${isActive ? "status-button-active" : ""}`}
+                        onClick={() =>
+                          setActiveSummaryKey((prev) =>
+                            prev === summary.pokemonName
+                              ? null
+                              : summary.pokemonName,
+                          )
+                        }
+                      >
                         {summary.neutralCount}~
-                      </span>
-                      <span className="status status-weak">
+                      </button>
+                      <button
+                        type="button"
+                        className={`status status-weak status-button ${isActive ? "status-button-active" : ""}`}
+                        onClick={() =>
+                          setActiveSummaryKey((prev) =>
+                            prev === summary.pokemonName
+                              ? null
+                              : summary.pokemonName,
+                          )
+                        }
+                      >
                         {summary.weakCount}✗
-                      </span>
-                      <span className="status status-danger">
+                      </button>
+                      <button
+                        type="button"
+                        className={`status status-danger status-button ${isActive ? "status-button-active" : ""}`}
+                        onClick={() =>
+                          setActiveSummaryKey((prev) =>
+                            prev === summary.pokemonName
+                              ? null
+                              : summary.pokemonName,
+                          )
+                        }
+                      >
                         D{summary.maxDangerScore}
-                      </span>
+                      </button>
                     </div>
+                    {isActive ? (
+                      <div className="status-explanation">
+                        {summary.details.filter((d) => d.strength === "Strong")
+                          .length > 0 ? (
+                          <p style={{ margin: "0 0 0.15rem" }}>
+                            <strong>Strong vs:</strong>{" "}
+                            {summary.details
+                              .filter((d) => d.strength === "Strong")
+                              .map(formatEnemyLabel)
+                              .join(" • ")}
+                          </p>
+                        ) : null}
+                        {summary.details.filter((d) => d.strength === "Neutral")
+                          .length > 0 ? (
+                          <p style={{ margin: "0 0 0.15rem" }}>
+                            <strong>Neutral vs:</strong>{" "}
+                            {summary.details
+                              .filter((d) => d.strength === "Neutral")
+                              .map(formatEnemyLabel)
+                              .join(" • ")}
+                          </p>
+                        ) : null}
+                        {summary.details.filter((d) => d.strength === "Weak")
+                          .length > 0 ? (
+                          <p style={{ margin: "0 0 0.15rem" }}>
+                            <strong>Weak vs:</strong>{" "}
+                            {summary.details
+                              .filter((d) => d.strength === "Weak")
+                              .map(formatEnemyLabel)
+                              .join(" • ")}
+                          </p>
+                        ) : null}
+                        <p style={{ margin: 0 }}>
+                          <strong>Danger:</strong>{" "}
+                          {summary.details
+                            .map(
+                              (d) =>
+                                `${formatEnemyLabel(d)} (${d.dangerScore})`,
+                            )
+                            .join(" • ")}
+                        </p>
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
           </ul>
         </section>
       ) : null}
+
+      {/* ── Import / Export ── */}
+      <section className="panel transfer-panel">
+        <button
+          type="button"
+          className={
+            isTransferOpen
+              ? "team-collapse-toggle is-open"
+              : "team-collapse-toggle is-closed"
+          }
+          onClick={() => setIsTransferOpen((c) => !c)}
+          aria-expanded={isTransferOpen}
+        >
+          <span className="toggle-icon" aria-hidden="true">
+            {isTransferOpen ? "−" : "+"}
+          </span>
+          <span>
+            {isTransferOpen ? "Hide Import / Export" : "Import / Export"}
+          </span>
+        </button>
+
+        {isTransferOpen ? (
+          <>
+            <div className="form-row" style={{ marginTop: "0.45rem" }}>
+              <label htmlFor="roster-transfer">Export / Import Roster</label>
+          <textarea
+            id="roster-transfer"
+            className="transfer-input"
+            value={rosterTransferText}
+            onChange={(e) => setRosterTransferText(e.target.value)}
+            placeholder='{"team":[{"name":"gyarados","moveTypes":["water"]}]}'
+          />
+          <div className="transfer-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleExportRoster}
+            >
+              Export JSON
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleCopyRoster}
+            >
+              Copy JSON
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => handleImportRoster(rosterTransferText)}
+            >
+              Import JSON
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handlePasteImportRoster}
+            >
+              Paste + Import
+            </button>
+          </div>
+          {rosterTransferMessage ? (
+            <p className="transfer-message">{rosterTransferMessage}</p>
+          ) : null}
+        </div>
+
+        <div className="form-row" style={{ marginTop: "0.55rem" }}>
+          <label htmlFor="enemy-transfer">Export / Import Enemies</label>
+          <textarea
+            id="enemy-transfer"
+            className="transfer-input"
+            value={enemyTransferText}
+            onChange={(e) => setEnemyTransferText(e.target.value)}
+            placeholder='{"enemies":[{"name":"charizard","types":["fire","flying"],"moveTypeInput":"","onField":false}]}'
+          />
+          <div className="transfer-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleExportEnemies}
+            >
+              Export JSON
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleCopyEnemies}
+            >
+              Copy JSON
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => handleImportEnemies(enemyTransferText)}
+            >
+              Import JSON
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handlePasteImportEnemies}
+            >
+              Paste + Import
+            </button>
+          </div>
+          {enemyTransferMessage ? (
+            <p className="transfer-message">{enemyTransferMessage}</p>
+          ) : null}
+        </div>
+          </>
+        ) : null}
+      </section>
     </main>
   );
 }

@@ -21,6 +21,7 @@ function makeEnemy(
     moveTypeInput: "",
     fetchedCoverageTypes: fetchedCoverage,
     spriteUrl: null,
+    baseStats: null,
     onField,
   };
 }
@@ -177,5 +178,14 @@ describe("evaluateRosterVsAllEnemies", () => {
     const summaries = evaluateRosterVsAllEnemies(roster, enemies);
     // Normal type has no super-effective coverage vs water or fire by default
     expect(summaries[0].neutralCount + summaries[0].weakCount).toBe(2);
+  });
+
+  it("includes per-enemy details", () => {
+    const roster = [makeMyPokemon("pikachu", ["electric"])];
+    const enemies = [makeEnemy("e1", ["water"]), makeEnemy("e2", ["ground"])];
+    const summaries = evaluateRosterVsAllEnemies(roster, enemies);
+    expect(summaries[0].details).toHaveLength(2);
+    expect(summaries[0].details[0].enemyTypes).toEqual(["water"]);
+    expect(summaries[0].details[1].enemyTypes).toEqual(["ground"]);
   });
 });

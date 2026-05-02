@@ -60,12 +60,20 @@ export function evaluateField2v2(
   );
 }
 
+export type RosterEvalDetail = {
+  enemyName: string;
+  enemyTypes: PokemonType[];
+  strength: "Strong" | "Neutral" | "Weak";
+  dangerScore: number;
+};
+
 export type RosterEvalSummary = {
   pokemonName: string;
   strongCount: number;
   neutralCount: number;
   weakCount: number;
   maxDangerScore: number;
+  details: RosterEvalDetail[];
 };
 
 export function evaluateRosterVsAllEnemies(
@@ -86,12 +94,20 @@ export function evaluateRosterVsAllEnemies(
       );
     });
 
+    const details: RosterEvalDetail[] = enemies.map((enemy, i) => ({
+      enemyName: enemy.name,
+      enemyTypes: enemy.types,
+      strength: evaluations[i].strength,
+      dangerScore: evaluations[i].dangerScore,
+    }));
+
     return {
       pokemonName: myPokemon.name,
       strongCount: evaluations.filter((e) => e.strength === "Strong").length,
       neutralCount: evaluations.filter((e) => e.strength === "Neutral").length,
       weakCount: evaluations.filter((e) => e.strength === "Weak").length,
       maxDangerScore: Math.max(...evaluations.map((e) => e.dangerScore)),
+      details,
     };
   });
 }
